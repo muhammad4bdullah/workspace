@@ -51,23 +51,77 @@
     }
 
     function openPaywall(featureName) {
+        openPlans(featureName);
+    }
+
+    async function openPlans(featureName) {
         const { modal, dialog, close } = createModal();
         const title = make("h2", "", "A-Zpace Pro");
-        const description = make("p", "", "Unlock advanced workspace features and tools.");
+        const description = make("p", "", featureName
+            ? (entitlements.proFeatureLabels[featureName] || "This feature") + " is part of A-Zpace Pro."
+            : "Compare what is included in each plan.");
+        const grid = make("div", "azpace-plan-grid");
+        const free = make("article", "azpace-plan-card");
+        const freeTitle = make("h3", "", "Free");
+        const freePrice = make("div", "azpace-plan-price", "Free");
+        const freeText = make("p", "", "All current workspace essentials.");
+        const freeList = make("ul", "azpace-feature-list");
+        [
+            "Writer, Sheets, Slides, PDF and Notes",
+            "Everyday editing and account sync",
+            "Current import and export basics"
+        ].forEach(item => freeList.append(make("li", "", item)));
+        free.append(freeTitle, freePrice, freeText, freeList);
+
+        const pro = make("article", "azpace-plan-card featured");
+        const proTitle = make("h3", "", "A-Zpace Pro");
+        const proPrice = make("div", "azpace-plan-price", "Monthly and yearly plans");
+        const monthlyPrice = make("p", "azpace-monthly-price", "Monthly: price coming soon");
+        const yearlyPrice = make("p", "azpace-yearly-price", "Yearly: price coming soon");
+        const proText = make("p", "", "Advanced tools across your workspace.");
+        const proList = make("ul", "azpace-feature-list");
+        Object.values(entitlements.proFeatureLabels).forEach(item => {
+            proList.append(make("li", "", item));
+        });
+        pro.append(proTitle, proPrice, monthlyPrice, yearlyPrice, proText, proList);
+        grid.append(free, pro);
+
+        const note = make("p", "azpace-account-muted",
+            "The private beta is free. Paid monthly and yearly checkout is not configured yet; you will not be charged.");
         if (featureName) {
-            description.textContent += " This feature requires Pro.";
+            note.textContent = "This feature requires Pro. The private beta is free and paid checkout is not configured yet.";
         }
+
         const actions = make("div", "azpace-dialog-actions");
-        const upgrade = make("button", "primary", "Paid plans coming soon");
         const later = make("button", "", "Maybe later");
-        upgrade.type = "button";
-        upgrade.disabled = true;
         later.type = "button";
         later.addEventListener("click", close);
-        actions.append(upgrade, later);
-        dialog.replaceChildren(title, description, actions);
+        actions.append(later);
+        dialog.replaceChildren(title, description, grid, note, actions);
         modal.hidden = false;
         later.focus();
+        try {
+            const { data, error } = await auth.client
+                .from("subscription_plans")
+                .select("plan_key,display_name,amount_minor_units,currency,is_available")
+                .eq("is_available", true);
+            if (error) throw error;
+            if (data && data.length) {
+                const prices = new Map(data.map(plan => {
+                    const amount = (plan.amount_minor_units / 100).toFixed(2);
+                    return [plan.plan_key, plan.currency + " " + amount + " / " +
+                        (plan.plan_key === "monthly" ? "month" : "year")];
+                }));
+                if (prices.has("monthly")) monthlyPrice.textContent = "Monthly: " + prices.get("monthly");
+                if (prices.has("yearly")) yearlyPrice.textContent = "Yearly: " + prices.get("yearly");
+                if (prices.size) {
+                    note.textContent = "Pricing shown is informational. Secure checkout is not connected; no payment will be taken.";
+                }
+            }
+        } catch (error) {
+            console.error("Could not load published plan pricing:", error);
+            note.textContent = "Plan pricing is temporarily unavailable. No payment will be taken.";
+        }
     }
 
     function addAccountSettings(menu) {
@@ -136,6 +190,30 @@
 
     let menuNode;
     let statusNode;
+    let referralCard;
+
+    async function refreshReferral() {
+        if (!referralCard) return;
+        try {
+            const summary = await entitlements.getReferralSummary();
+            const referralUrl = new URL("login.html", location.href);
+            referralUrl.searchParams.set("ref", summary.code);
+            referralCard.querySelector(".azpace-referral-code").textContent = summary.code;
+            referralCard.querySelector(".azpace-referral-link").value = referralUrl.href;
+            const progress = summary.verified_referrals % 15;
+            const towardNext = summary.verified_referrals > 0 && progress === 0 ? 15 : progress;
+            referralCard.querySelector(".azpace-referral-progress").textContent =
+                summary.verified_referrals + " verified signup(s) · " + towardNext +
+                "/15 toward your next free Pro month.";
+            referralCard.querySelector(".azpace-referral-earned").textContent =
+                summary.months_earned + " free 30-day Pro month(s) earned.";
+            const bar = referralCard.querySelector("progress");
+            bar.value = towardNext;
+            bar.max = 15;
+        } catch (error) {
+            status(statusNode, error.message || "Could not load your referral code.", "error");
+        }
+    }
 
     async function refreshMenu() {
         if (!menuNode) return;
@@ -162,6 +240,7 @@
             name.textContent = profile.display_name || "";
             const upgrade = menuNode.querySelector(".azpace-upgrade-button");
             upgrade.hidden = account.hasPro;
+            await refreshReferral();
         } catch (error) {
             status(statusNode, error.message || "Could not load account details.", "error");
         }
@@ -190,9 +269,46 @@
         const actions = make("div", "azpace-account-actions");
         actions.className = "azpace-account-actions";
 
-        const upgrade = make("button", "primary azpace-upgrade-button", "Upgrade to Pro");
+        const upgrade = make("button", "primary azpace-upgrade-button", "View Free and Pro plans");
         upgrade.type = "button";
         upgrade.addEventListener("click", () => openPaywall());
+        referralCard = make("section", "azpace-referral-card");
+        const referralTitle = make("strong", "", "Invite friends · earn free Pro");
+        const referralHelp = make("span", "azpace-account-muted",
+            "Earn 30 days of Pro for every 15 new users who verify their email.");
+        const referralCode = make("span", "azpace-referral-code", "Loading your code…");
+        const referralLink = make("input", "azpace-referral-link");
+        referralLink.readOnly = true;
+        referralLink.setAttribute("aria-label", "Your referral link");
+        const referralActions = make("div", "azpace-account-promo");
+        const copyReferral = make("button", "", "Copy invite link");
+        copyReferral.type = "button";
+        copyReferral.addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(referralLink.value);
+                status(statusNode, "Referral link copied.", "success");
+            } catch (error) {
+                referralLink.focus();
+                referralLink.select();
+                status(statusNode, "Clipboard unavailable. Copy the selected link.", "error");
+            }
+        });
+        const referralProgress = make("span", "azpace-account-muted azpace-referral-progress");
+        const referralBar = make("progress");
+        referralBar.max = 15;
+        referralBar.value = 0;
+        const referralEarned = make("span", "azpace-account-muted azpace-referral-earned");
+        referralActions.append(copyReferral);
+        referralCard.append(
+            referralTitle,
+            referralHelp,
+            referralCode,
+            referralLink,
+            referralActions,
+            referralProgress,
+            referralBar,
+            referralEarned
+        );
         const promoForm = make("form", "azpace-account-promo");
         const promoInput = make("input");
         promoInput.name = "promo_code";
@@ -250,7 +366,7 @@
 
         statusNode = make("div", "azpace-account-notice");
         statusNode.id = "azpace-auth-status";
-        actions.append(upgrade, promoForm, migrate, admin, logout);
+        actions.append(upgrade, referralCard, promoForm, migrate, admin, logout);
         menuNode.append(title, name, email, plan, expiry, source, statusNode, actions);
 
         trigger.addEventListener("click", async () => {
@@ -273,6 +389,21 @@
         }).catch(error => {
             console.error("Could not verify administrator access:", error);
         });
+        guardMarkedControls();
+    }
+
+    function guardMarkedControls() {
+        document.querySelectorAll("[data-azpace-pro]").forEach(element => {
+            const featureName = element.dataset.azpacePro;
+            if (element.dataset.azpaceProGuarded === "true") return;
+            element.dataset.azpaceProGuarded = "true";
+            try {
+                window.AZpacePaywall.decorate(element, featureName);
+            } catch (error) {
+                console.error("Could not protect Pro feature:", featureName, error);
+                element.disabled = true;
+            }
+        });
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -292,7 +423,11 @@
             if (!(element instanceof Element)) {
                 throw new TypeError("Pass a DOM element to decorate a Pro feature.");
             }
-            const badge = make("span", "azpace-beta-tag", "PRO");
+            if (!entitlements.proFeatureLabels[featureName]) {
+                throw new Error("Unknown Pro feature: " + featureName);
+            }
+            element.classList.add("azpace-pro-control");
+            const badge = make("span", "azpace-pro-badge", "PRO");
             badge.setAttribute("aria-label", "A-Zpace Pro feature");
             element.append(badge);
             element.addEventListener("click", async event => {

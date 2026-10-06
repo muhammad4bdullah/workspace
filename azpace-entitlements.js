@@ -2,6 +2,16 @@
     "use strict";
 
     const auth = window.AZpaceAuth;
+    const proFeatureLabels = Object.freeze({
+        writer_running_headers: "Writer headers",
+        writer_running_footers: "Writer footers",
+        writer_page_numbers: "Writer page numbers",
+        pdf_merge: "PDF merge",
+        pdf_signature: "PDF signatures",
+        sheets_xlsx_export: "Excel workbook export",
+        slides_pptx_export: "PowerPoint export",
+        slides_png_export: "Slide image export"
+    });
 
     async function hasProAccess() {
         await auth.ready;
@@ -39,11 +49,21 @@
         return auth.getAccount();
     }
 
+    async function getReferralSummary() {
+        await auth.ready;
+        if (!auth.user) throw new Error("Sign in to view referral details.");
+        const { data, error } = await auth.client.rpc("my_referral_summary");
+        if (error) throw error;
+        return data;
+    }
+
     window.AZpaceEntitlements = {
         hasProAccess,
         isFeatureAvailable,
         isAdmin,
-        redeemPromoCode
+        redeemPromoCode,
+        getReferralSummary,
+        proFeatureLabels
     };
     window.hasProAccess = hasProAccess;
     window.isFeatureAvailable = isFeatureAvailable;

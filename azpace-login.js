@@ -27,9 +27,14 @@
         const params = new URLSearchParams(location.search);
         const error = params.get("error");
         if (error) message(error, "error");
+        const referralCode = params.get("ref");
+        if (referralCode) {
+            document.querySelector('#signup-form [name="referral_code"]').value =
+                referralCode.trim().toUpperCase().slice(0, 24);
+        }
         const recovery = params.get("mode") === "recovery" ||
             window.location.hash.includes("type=recovery");
-        showMode(recovery ? "recovery" : "login");
+        showMode(referralCode ? "signup" : recovery ? "recovery" : "login");
         if (recovery) {
             document.getElementById("login-description").textContent =
                 "Choose a new password for your A-Zpace account.";
@@ -68,7 +73,10 @@
                     email: signupForm.elements.email.value.trim(),
                     password: signupForm.elements.password.value,
                     options: {
-                        data: { display_name: signupForm.elements.display_name.value.trim() },
+                        data: {
+                            display_name: signupForm.elements.display_name.value.trim(),
+                            referral_code: signupForm.elements.referral_code.value.trim().toUpperCase() || null
+                        },
                         emailRedirectTo: new URL("login.html", location.href).href
                     }
                 });
