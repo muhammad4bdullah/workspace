@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — A-Zpace</title>
+    <link rel="stylesheet" href="azpace-auth.css">
+    <script>document.documentElement.classList.add("azpace-auth-pending");</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="azpace-auth.js"></script>
+    <script src="azpace-entitlements.js"></script>
+    <script src="azpace-auth-ui.js"></script>
+    <script src="azpace-admin.js"></script>
+</head>
+<body>
+    <main class="azpace-admin">
+        <header>
+            <div>
+                <div class="azpace-beta-tag">PRIVATE BETA · ADMIN</div>
+                <h1>A-Zpace account administration</h1>
+                <p>Manage account access and promo codes. Changes are authorized by Supabase, not by this page.</p>
+            </div>
+            <button type="button" id="admin-home">Workspace</button>
+        </header>
+        <div id="admin-status" class="admin-status" role="status" aria-live="polite"></div>
+        <section hidden>
+            <h2>Find a user</h2>
+            <form id="admin-search" class="admin-search">
+                <input type="search" name="query" maxlength="200" placeholder="Search by email or display name">
+                <button type="submit">Search</button>
+            </form>
+            <div id="admin-users" class="admin-results"></div>
+        </section>
+        <section hidden>
+            <h2>Promo codes</h2>
+            <form id="promo-form" class="promo-form">
+                <label>Code
+                    <input name="code" maxlength="64" required placeholder="AZPACE-BETA">
+                </label>
+                <label>Duration (days)
+                    <input name="duration" type="number" min="1" max="36500" required value="30">
+                </label>
+                <label>Maximum redemptions
+                    <input name="limit" type="number" min="1" required value="100">
+                </label>
+                <label>Code expires (optional)
+                    <input name="expires" type="datetime-local">
+                </label>
+                <button class="primary" type="submit">Create or update code</button>
+            </form>
+            <div id="admin-promos" class="admin-results"></div>
+        </section>
+    </main>
+</body>
+</html>

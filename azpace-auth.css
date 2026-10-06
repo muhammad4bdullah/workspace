@@ -1,0 +1,410 @@
+html.azpace-auth-pending body > * {
+    visibility: hidden !important;
+}
+
+html.azpace-auth-pending #azpace-auth-loading {
+    position: fixed;
+    z-index: 20000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: #f6f7fb;
+    color: #555663;
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-align: center;
+    visibility: visible !important;
+}
+
+#azpace-auth-loading::before {
+    width: 22px;
+    height: 22px;
+    margin: 0 auto 12px;
+    border: 2px solid #dedeea;
+    border-top-color: #5b5ce2;
+    border-radius: 50%;
+    content: "";
+    animation: azpace-auth-spin .8s linear infinite;
+}
+
+@keyframes azpace-auth-spin {
+    to { transform: rotate(360deg); }
+}
+
+.azpace-auth-control,
+.azpace-auth-card,
+.azpace-auth-dialog {
+    color: #20212a;
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.azpace-account-trigger {
+    position: fixed;
+    z-index: 9998;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 8px 13px;
+    border: 1px solid #dedeea;
+    border-radius: 999px;
+    background: #fff;
+    color: #33349a;
+    box-shadow: 0 5px 22px #25234a20;
+    cursor: pointer;
+}
+
+.azpace-account-trigger:hover,
+.azpace-account-trigger:focus-visible {
+    border-color: #7778e9;
+    outline: none;
+}
+
+.azpace-account-trigger strong {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.azpace-beta-tag {
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: #fff2d9;
+    color: #795300;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.azpace-account-menu {
+    position: fixed;
+    z-index: 9999;
+    right: 16px;
+    bottom: 68px;
+    width: min(340px, calc(100vw - 24px));
+    padding: 18px;
+    border: 1px solid #e5e5ed;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 14px 46px #20213626;
+}
+
+.azpace-account-menu[hidden],
+.azpace-modal[hidden] {
+    display: none;
+}
+
+.azpace-account-menu h2,
+.azpace-auth-dialog h2 {
+    margin: 0 0 5px;
+    font-size: 17px;
+}
+
+.azpace-account-email,
+.azpace-account-muted {
+    color: #70717c;
+    overflow-wrap: anywhere;
+}
+
+.azpace-account-plan {
+    margin: 14px 0 4px;
+    font-weight: 700;
+}
+
+.azpace-account-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.azpace-auth-control button,
+.azpace-auth-card button,
+.azpace-auth-dialog button {
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid #dedee7;
+    border-radius: 8px;
+    background: #fff;
+    color: #292a34;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.azpace-auth-control button:hover,
+.azpace-auth-card button:hover,
+.azpace-auth-dialog button:hover {
+    border-color: #7778e9;
+}
+
+.azpace-auth-control button.primary,
+.azpace-auth-card button.primary,
+.azpace-auth-dialog button.primary {
+    border-color: #5b5ce2;
+    background: #5b5ce2;
+    color: #fff;
+}
+
+.azpace-auth-control button:disabled,
+.azpace-auth-card button:disabled,
+.azpace-auth-dialog button:disabled {
+    cursor: not-allowed;
+    opacity: .62;
+}
+
+.azpace-auth-control button.danger {
+    color: #9d3030;
+}
+
+.azpace-account-actions .azpace-account-promo {
+    display: flex;
+    gap: 6px;
+}
+
+.azpace-account-promo input,
+.azpace-auth-dialog input,
+.azpace-auth-card input,
+.azpace-admin input,
+.azpace-admin select {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid #dedee7;
+    border-radius: 8px;
+    color: #252631;
+    font: inherit;
+}
+
+.azpace-account-promo input {
+    min-width: 0;
+}
+
+.azpace-account-notice,
+.azpace-auth-message {
+    margin-top: 10px;
+    color: #50515e;
+    overflow-wrap: anywhere;
+}
+
+.azpace-account-notice[data-kind="error"],
+.azpace-auth-message[data-kind="error"] {
+    color: #a02f2f;
+}
+
+.azpace-account-notice[data-kind="success"],
+.azpace-auth-message[data-kind="success"] {
+    color: #287448;
+}
+
+.azpace-modal {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: #17182477;
+}
+
+.azpace-auth-dialog {
+    width: min(440px, 100%);
+    padding: 24px;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 60px #1112;
+}
+
+.azpace-auth-dialog p {
+    margin: 8px 0 18px;
+    color: #696a76;
+}
+
+.azpace-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.azpace-auth-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: #f6f7fb;
+    color: #20212a;
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.azpace-auth-card {
+    width: min(420px, 100%);
+    padding: 28px;
+    border: 1px solid #e5e6ed;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 12px 36px #25234a12;
+}
+
+.azpace-auth-card h1 {
+    margin: 10px 0 2px;
+    font-size: 27px;
+}
+
+.azpace-auth-card .beta {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: #fff2d9;
+    color: #795300;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.azpace-auth-card .field {
+    display: grid;
+    gap: 5px;
+    margin: 13px 0;
+    font-weight: 600;
+}
+
+.azpace-auth-card .form-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.azpace-auth-card .form-actions[hidden] {
+    display: none;
+}
+
+.azpace-auth-card .text-action {
+    padding: 3px 0;
+    border: 0;
+    color: #4b4cc9;
+    text-align: left;
+}
+
+.azpace-auth-card .fine-print {
+    margin-top: 18px;
+    color: #737480;
+    font-size: 12px;
+}
+
+.azpace-admin {
+    min-height: 100vh;
+    padding: 36px max(18px, calc((100% - 1050px) / 2));
+    background: #f6f7fb;
+    color: #20212a;
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.azpace-admin header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.azpace-admin h1,
+.azpace-admin h2 {
+    margin: 0 0 12px;
+}
+
+.azpace-admin section {
+    margin: 16px 0;
+    padding: 18px;
+    border: 1px solid #e5e6ed;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.azpace-admin .admin-search,
+.azpace-admin .admin-grant,
+.azpace-admin .promo-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 8px;
+}
+
+.azpace-admin .admin-search input {
+    flex: 1 1 240px;
+}
+
+.azpace-admin label {
+    display: grid;
+    flex: 1 1 140px;
+    gap: 5px;
+}
+
+.azpace-admin .admin-results {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.azpace-admin .admin-user,
+.azpace-admin .promo-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) repeat(4, auto);
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #eeeef3;
+    border-radius: 8px;
+}
+
+.azpace-admin .admin-user small {
+    display: block;
+    color: #70717c;
+}
+
+.azpace-admin .admin-status {
+    min-height: 22px;
+    margin-top: 12px;
+    color: #595a65;
+}
+
+.azpace-admin .admin-status[data-kind="error"] {
+    color: #a02f2f;
+}
+
+.azpace-admin .admin-status[data-kind="success"] {
+    color: #287448;
+}
+
+@media (max-width: 620px) {
+    .azpace-account-trigger {
+        right: 10px;
+        bottom: 10px;
+        min-height: 38px;
+        padding: 7px 10px;
+    }
+
+    .azpace-account-trigger strong {
+        max-width: 115px;
+    }
+
+    .azpace-account-menu {
+        right: 10px;
+        bottom: 57px;
+    }
+
+    .azpace-admin {
+        padding: 22px 12px 70px;
+    }
+
+    .azpace-admin .admin-user,
+    .azpace-admin .promo-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .azpace-auth-card {
+        padding: 22px;
+    }
+}

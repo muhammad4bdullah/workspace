@@ -1,0 +1,3522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A-Zpace</title>
+<link rel="stylesheet" href="azpace-auth.css">
+<script>document.documentElement.classList.add("azpace-auth-pending");</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="azpace-auth.js"></script>
+<script src="azpace-entitlements.js"></script>
+<script src="azpace-auth-ui.js"></script>
+
+<style>
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+:root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --surface-2: #f1f3f7;
+    --surface-3: #fafbfc;
+
+    --border: #e4e7ec;
+
+    --text: #181a1f;
+    --muted: #727783;
+    --faint: #a0a5af;
+
+    --hover: #f1f3f7;
+
+    --accent: #5b5ce2;
+    --accent-dark: #4b4cc9;
+    --accent-soft: #eeeeff;
+
+    --green: #20a463;
+    --orange: #e96b2c;
+    --red: #db4545;
+    --yellow: #b98700;
+    --blue: #3974df;
+
+    --shadow-sm:
+        0 2px 8px rgba(20, 25, 40, .04);
+
+    --shadow:
+        0 12px 35px rgba(20, 25, 40, .07);
+
+    --radius: 14px;
+}
+
+body.dark {
+    --bg: #0f1115;
+    --surface: #17191e;
+    --surface-2: #21242b;
+    --surface-3: #1b1e24;
+
+    --border: #2d3139;
+
+    --text: #f3f4f6;
+    --muted: #a2a7b1;
+    --faint: #777d87;
+
+    --hover: #252932;
+
+    --accent: #696af0;
+    --accent-dark: #595ad7;
+    --accent-soft: #292a50;
+
+    --shadow:
+        0 15px 45px rgba(0, 0, 0, .28);
+}
+
+body {
+    min-height: 100vh;
+
+    background: var(--bg);
+    color: var(--text);
+
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+
+    transition:
+        background .2s ease,
+        color .2s ease;
+}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.app {
+    min-height: 100vh;
+    display: flex;
+}
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    width: 250px;
+
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+
+    padding: 18px 13px;
+
+    display: flex;
+    flex-direction: column;
+
+    z-index: 100;
+
+    transition:
+        transform .22s ease;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    padding:
+        4px 8px
+        22px;
+}
+
+.logo {
+    width: 39px;
+    height: 39px;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7274ef,
+            #4d4fc9
+        );
+
+    color: white;
+
+    display: grid;
+    place-items: center;
+
+    font-size: 18px;
+    font-weight: 900;
+
+    box-shadow:
+        0 8px 20px rgba(82, 83, 220, .25);
+}
+
+.brand-title {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.brand-sub {
+    margin-top: 2px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+}
+
+.nav-label {
+    padding:
+        0 10px
+        7px;
+
+    color: var(--faint);
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.nav button {
+    width: 100%;
+
+    border: 0;
+
+    background: transparent;
+    color: var(--muted);
+
+    border-radius: 10px;
+
+    padding: 10px 11px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    text-align: left;
+
+    font-size: 12px;
+    font-weight: 650;
+
+    transition:
+        background .15s ease,
+        color .15s ease;
+}
+
+.nav button:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.nav button.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.nav-icon {
+    width: 19px;
+
+    text-align: center;
+
+    font-size: 15px;
+}
+
+.sidebar-spacer {
+    flex: 1;
+}
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+.storage {
+    margin:
+        8px 3px
+        10px;
+
+    padding: 12px;
+
+    background: var(--surface-3);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 12px;
+}
+
+.storage-header {
+    display: flex;
+    justify-content: space-between;
+
+    margin-bottom: 8px;
+
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.storage-header span:last-child {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.storage-bar {
+    height: 5px;
+
+    background: var(--surface-2);
+
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+.storage-bar span {
+    display: block;
+
+    width: 28%;
+    height: 100%;
+
+    background: var(--accent);
+
+    border-radius: inherit;
+}
+
+.sidebar-footer {
+    display: flex;
+    gap: 4px;
+}
+
+.sidebar-footer button {
+    flex: 1;
+
+    border: 0;
+
+    background: transparent;
+    color: var(--muted);
+
+    padding: 9px;
+
+    border-radius: 9px;
+}
+
+.sidebar-footer button:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main {
+    width: 100%;
+    min-width: 0;
+
+    margin-left: 250px;
+}
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.topbar {
+    height: 68px;
+
+    position: sticky;
+    top: 0;
+
+    z-index: 50;
+
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+
+    padding:
+        0 30px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--surface) 94%,
+            transparent
+        );
+
+    backdrop-filter: blur(14px);
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+.mobile-menu {
+    display: none;
+}
+
+.global-search {
+    position: relative;
+
+    width: min(560px, 100%);
+}
+
+.global-search > span:first-child {
+    position: absolute;
+
+    left: 13px;
+    top: 50%;
+
+    transform:
+        translateY(-50%);
+
+    color: var(--muted);
+}
+
+.global-search input {
+    width: 100%;
+    height: 40px;
+
+    padding:
+        0 72px
+        0 38px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 10px;
+
+    outline: none;
+
+    background: var(--surface-2);
+    color: var(--text);
+
+    font-size: 12px;
+
+    transition:
+        border .15s ease,
+        background .15s ease;
+}
+
+.global-search input:focus {
+    border-color: var(--accent);
+    background: var(--surface);
+}
+
+.search-shortcut {
+    position: absolute;
+
+    right: 9px;
+    top: 50%;
+
+    transform:
+        translateY(-50%);
+
+    padding:
+        2px 5px;
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 5px;
+
+    background: var(--surface);
+
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+.top-actions {
+    margin-left: auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+}
+
+.icon-button {
+    width: 38px;
+    height: 38px;
+
+    border: 0;
+
+    border-radius: 10px;
+
+    background: transparent;
+    color: var(--muted);
+
+    font-size: 16px;
+}
+
+.icon-button:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.avatar {
+    width: 34px;
+    height: 34px;
+
+    border-radius: 10px;
+
+    background: var(--accent-soft);
+    color: var(--accent);
+
+    display: grid;
+    place-items: center;
+
+    font-size: 11px;
+    font-weight: 850;
+}
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.content {
+    width: min(1380px, 100%);
+
+    margin:
+        0 auto;
+
+    padding:
+        36px 34px
+        60px;
+}
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 25px;
+
+    margin-bottom: 30px;
+}
+
+.hero h1 {
+    margin-bottom: 8px;
+
+    font-size: 30px;
+    line-height: 1.1;
+
+    letter-spacing: -.9px;
+}
+
+.hero p {
+    max-width: 690px;
+
+    color: var(--muted);
+
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.hero-actions {
+    display: flex;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+}
+
+.primary-button,
+.secondary-button {
+    height: 40px;
+
+    padding:
+        0 14px;
+
+    border-radius: 10px;
+
+    font-size: 11px;
+    font-weight: 750;
+
+    transition:
+        transform .15s ease,
+        background .15s ease;
+}
+
+.primary-button {
+    border:
+        1px solid var(--accent);
+
+    background: var(--accent);
+    color: white;
+}
+
+.primary-button:hover {
+    background: var(--accent-dark);
+
+    transform:
+        translateY(-1px);
+}
+
+.secondary-button {
+    border:
+        1px solid var(--border);
+
+    background: var(--surface);
+    color: var(--text);
+}
+
+.secondary-button:hover {
+    background: var(--hover);
+}
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+.section {
+    margin-top: 30px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 13px;
+}
+
+.section-title {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.section-action {
+    border: 0;
+
+    background: transparent;
+    color: var(--accent);
+
+    font-size: 10px;
+    font-weight: 750;
+}
+
+/* =========================================================
+   APP CARDS
+========================================================= */
+
+.apps {
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.app-card {
+    min-height: 158px;
+
+    position: relative;
+
+    padding: 17px;
+
+    background: var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 15px;
+
+    cursor: pointer;
+
+    overflow: hidden;
+
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.app-card::after {
+    content: "";
+
+    position: absolute;
+
+    width: 90px;
+    height: 90px;
+
+    right: -45px;
+    bottom: -45px;
+
+    border-radius: 50%;
+
+    background:
+        var(--accent-soft);
+
+    opacity: .35;
+
+    pointer-events: none;
+}
+
+.app-card:hover {
+    transform:
+        translateY(-3px);
+
+    border-color:
+        color-mix(
+            in srgb,
+            var(--accent) 35%,
+            var(--border)
+        );
+
+    box-shadow:
+        var(--shadow);
+}
+
+.app-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.app-icon {
+    width: 43px;
+    height: 43px;
+
+    border-radius: 11px;
+
+    display: grid;
+    place-items: center;
+
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.app-arrow {
+    color: var(--muted);
+
+    opacity: 0;
+
+    transition:
+        opacity .15s ease;
+}
+
+.app-card:hover .app-arrow {
+    opacity: 1;
+}
+
+.app-card h3 {
+    margin-top: 18px;
+    margin-bottom: 5px;
+
+    font-size: 14px;
+}
+
+.app-card p {
+    color: var(--muted);
+
+    font-size: 10px;
+
+    line-height: 1.55;
+}
+
+.word {
+    background: #e9efff;
+    color: #3568d8;
+}
+
+.sheets {
+    background: #e8f8ef;
+    color: #159447;
+}
+
+.slides {
+    background: #fff0e7;
+    color: #e96820;
+}
+
+.pdf {
+    background: #ffe9e9;
+    color: #d94141;
+}
+
+.notes {
+    background: #fff7d8;
+    color: #b17c00;
+}
+
+body.dark .word {
+    background: #202b4a;
+}
+
+body.dark .sheets {
+    background: #193728;
+}
+
+body.dark .slides {
+    background: #432b1e;
+}
+
+body.dark .pdf {
+    background: #422426;
+}
+
+body.dark .notes {
+    background: #42391b;
+}
+
+/* =========================================================
+   WORKSPACE GRID
+========================================================= */
+
+.workspace-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(290px, .75fr);
+
+    gap: 16px;
+}
+
+.panel {
+    background: var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 15px;
+
+    overflow: hidden;
+}
+
+.panel-header {
+    min-height: 53px;
+
+    padding:
+        0 17px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom:
+        1px solid var(--border);
+}
+
+.panel-header strong {
+    font-size: 13px;
+}
+
+.panel-header span {
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+/* =========================================================
+   RECENT
+========================================================= */
+
+.recent-list {
+    min-height: 185px;
+}
+
+.recent-item {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding:
+        12px 16px;
+
+    border-bottom:
+        1px solid var(--border);
+
+    cursor: pointer;
+
+    transition:
+        background .15s ease;
+}
+
+.recent-item:last-child {
+    border-bottom: 0;
+}
+
+.recent-item:hover {
+    background: var(--hover);
+}
+
+.file-icon {
+    width: 36px;
+    height: 36px;
+
+    flex: 0 0 36px;
+
+    border-radius: 9px;
+
+    display: grid;
+    place-items: center;
+
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.file-info {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.file-name {
+    font-size: 12px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.file-meta {
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+.file-open {
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.empty-state {
+    min-height: 185px;
+
+    display: grid;
+    place-items: center;
+
+    padding: 25px;
+
+    text-align: center;
+}
+
+.empty-inner {
+    max-width: 310px;
+}
+
+.empty-icon {
+    width: 47px;
+    height: 47px;
+
+    margin:
+        0 auto
+        11px;
+
+    border-radius: 13px;
+
+    background: var(--surface-2);
+
+    display: grid;
+    place-items: center;
+
+    font-size: 18px;
+}
+
+.empty-state h3 {
+    margin-bottom: 5px;
+
+    font-size: 13px;
+}
+
+.empty-state p {
+    color: var(--muted);
+
+    font-size: 10px;
+
+    line-height: 1.55;
+}
+
+/* =========================================================
+   QUICK ACTIONS
+========================================================= */
+
+.quick-grid {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    padding: 8px;
+}
+
+.quick {
+    border: 0;
+
+    background: transparent;
+
+    padding: 12px;
+
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    text-align: left;
+}
+
+.quick:hover {
+    background: var(--hover);
+}
+
+.quick-icon {
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 34px;
+
+    border-radius: 9px;
+
+    background: var(--surface-2);
+
+    color: var(--accent);
+
+    display: grid;
+    place-items: center;
+
+    font-size: 14px;
+}
+
+.quick b {
+    display: block;
+
+    margin-bottom: 2px;
+
+    font-size: 11px;
+
+    color: var(--text);
+}
+
+.quick small {
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+.tip {
+    padding:
+        14px 16px;
+
+    border-top:
+        1px solid var(--border);
+
+    color: var(--muted);
+
+    font-size: 9px;
+
+    line-height: 1.6;
+}
+
+.tip b {
+    color: var(--text);
+}
+
+/* =========================================================
+   FILE DROP
+========================================================= */
+
+.drop-area {
+    margin: 12px;
+
+    padding: 20px;
+
+    border:
+        1px dashed
+        color-mix(
+            in srgb,
+            var(--accent) 35%,
+            var(--border)
+        );
+
+    border-radius: 12px;
+
+    background: var(--accent-soft);
+
+    text-align: center;
+
+    transition:
+        border .15s ease,
+        transform .15s ease;
+}
+
+.drop-area.dragging {
+    border-color: var(--accent);
+
+    transform:
+        scale(1.015);
+}
+
+.drop-icon {
+    margin-bottom: 7px;
+
+    font-size: 22px;
+}
+
+.drop-area h3 {
+    margin-bottom: 4px;
+
+    font-size: 12px;
+}
+
+.drop-area p {
+    margin-bottom: 11px;
+
+    color: var(--muted);
+
+    font-size: 9px;
+
+    line-height: 1.5;
+}
+
+.supported {
+    margin-top: 9px;
+
+    color: var(--faint);
+
+    font-size: 8px;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer {
+    margin-top: 35px;
+
+    text-align: center;
+
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 500;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        rgba(8, 10, 15, .52);
+
+    backdrop-filter:
+        blur(5px);
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal {
+    width:
+        min(
+            440px,
+            100%
+        );
+
+    padding: 22px;
+
+    background: var(--surface);
+
+    border:
+        1px solid var(--border);
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 25px 80px
+        rgba(0, 0, 0, .25);
+}
+
+.modal h2 {
+    margin-bottom: 6px;
+
+    font-size: 16px;
+}
+
+.modal p {
+    margin-bottom: 18px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+
+    line-height: 1.55;
+}
+
+.modal-actions {
+    display: flex;
+
+    justify-content: flex-end;
+}
+
+.close-button {
+    border: 0;
+
+    background: var(--surface-2);
+    color: var(--text);
+
+    padding:
+        9px 14px;
+
+    border-radius: 9px;
+
+    font-size: 10px;
+    font-weight: 750;
+}
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+.toast {
+    position: fixed;
+
+    right: 22px;
+    bottom: 22px;
+
+    z-index: 600;
+
+    padding:
+        10px 14px;
+
+    border-radius: 10px;
+
+    background: var(--text);
+    color: var(--surface);
+
+    font-size: 10px;
+    font-weight: 750;
+
+    opacity: 0;
+
+    transform:
+        translateY(8px);
+
+    pointer-events: none;
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
+}
+
+.toast.show {
+    opacity: 1;
+
+    transform:
+        translateY(0);
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1150px) {
+
+    .apps {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+    .workspace-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 800px) {
+
+    .sidebar {
+        transform:
+            translateX(-100%);
+
+        box-shadow:
+            20px 0 50px
+            rgba(0, 0, 0, .15);
+    }
+
+    body.sidebar-open .sidebar {
+        transform:
+            translateX(0);
+    }
+
+    .main {
+        margin-left: 0;
+    }
+
+    .mobile-menu {
+        display: block;
+    }
+
+    .topbar {
+        padding:
+            0 14px;
+    }
+
+    .global-search {
+        display: none;
+    }
+
+    .content {
+        padding:
+            27px 16px
+            50px;
+    }
+
+    .hero {
+        flex-direction: column;
+
+        align-items: flex-start;
+    }
+
+    .hero-actions {
+        width: 100%;
+    }
+
+    .hero-actions button {
+        flex: 1;
+    }
+
+}
+
+@media (max-width: 520px) {
+
+    .apps {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .quick-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hide-mobile {
+        display: none;
+    }
+
+    .hero h1 {
+        font-size: 26px;
+    }
+
+}
+
+@media (max-width: 390px) {
+
+    .apps {
+        grid-template-columns: 1fr;
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- =======================================================
+     SIDEBAR
+======================================================= -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="brand">
+
+        <div class="logo">
+            A
+        </div>
+
+        <div>
+            <div class="brand-title">
+                A-Zpace
+            </div>
+
+            <div class="brand-sub">
+                Your private document hub
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="nav-label">
+        Workspace
+    </div>
+
+    <nav class="nav">
+
+        <button
+            class="active"
+            onclick="scrollTopPage()">
+
+            <span class="nav-icon">
+                ⌂
+            </span>
+
+            Home
+
+        </button>
+
+
+        <button onclick="focusSearch()">
+
+            <span class="nav-icon">
+                ⌕
+            </span>
+
+            Search
+
+        </button>
+
+
+        <button onclick="openFilePicker()">
+
+            <span class="nav-icon">
+                ↥
+            </span>
+
+            Open file
+
+        </button>
+
+    </nav>
+
+
+    <div style="height:20px"></div>
+
+
+    <div class="nav-label">
+        Create
+    </div>
+
+    <nav class="nav">
+
+        <button onclick="openApp('word.html')">
+
+            <span class="nav-icon">
+                W
+            </span>
+
+            Writer
+
+        </button>
+
+
+        <button onclick="openApp('sheets.html')">
+
+            <span class="nav-icon">
+                ▦
+            </span>
+
+            Sheets
+
+        </button>
+
+
+        <button onclick="openApp('ppt.html')">
+
+            <span class="nav-icon">
+                ▣
+            </span>
+
+            Slides
+
+        </button>
+
+
+        <button onclick="openApp('pdf.html')">
+
+            <span class="nav-icon">
+                ▤
+            </span>
+
+            PDF
+
+        </button>
+
+
+        <button onclick="openApp('notes.html')">
+
+            <span class="nav-icon">
+                N
+            </span>
+
+            Notes
+
+        </button>
+
+    </nav>
+
+
+    <div class="sidebar-spacer"></div>
+
+
+    <div class="storage">
+
+        <div class="storage-header">
+
+            <span>
+                Private cloud workspace
+            </span>
+
+            <span>
+                Ready
+            </span>
+
+        </div>
+
+        <div class="storage-bar">
+            <span></span>
+        </div>
+
+    </div>
+
+
+    <div class="sidebar-footer">
+
+        <button
+            onclick="toggleTheme()"
+            title="Toggle theme">
+
+            ◐
+
+        </button>
+
+
+        <button
+            onclick="showAbout()"
+            title="About">
+
+            ?
+
+        </button>
+
+    </div>
+
+</aside>
+
+
+<!-- =======================================================
+     MAIN
+======================================================= -->
+
+<div class="main">
+
+
+<!-- =======================================================
+     TOPBAR
+======================================================= -->
+
+<header class="topbar">
+
+    <button
+        class="icon-button mobile-menu"
+        onclick="toggleSidebar()">
+
+        ☰
+
+    </button>
+
+
+    <div class="global-search">
+
+        <span>
+            ⌕
+        </span>
+
+        <input
+            id="search"
+            autocomplete="off"
+            placeholder="Search apps and recent documents...">
+
+        <span class="search-shortcut">
+            Ctrl K
+        </span>
+
+    </div>
+
+
+    <div class="top-actions">
+
+        <button
+            class="icon-button hide-mobile"
+            onclick="openFilePicker()"
+            title="Open file">
+
+            ↥
+
+        </button>
+
+
+        <button
+            class="icon-button"
+            onclick="toggleTheme()"
+            title="Toggle dark mode">
+
+            ◐
+
+        </button>
+
+
+        <div class="avatar">
+            D
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =======================================================
+     CONTENT
+======================================================= -->
+
+<main class="content">
+
+
+<!-- HERO -->
+
+<section class="hero">
+
+    <div>
+
+        <h1>
+            Good to see you.
+        </h1>
+
+        <p>
+            One clean workspace for writing,
+            spreadsheets, presentations, PDFs
+            and notes — all from one place.
+        </p>
+
+    </div>
+
+
+    <div class="hero-actions">
+
+        <button
+            class="secondary-button"
+            onclick="openFilePicker()">
+
+            ↥ Open file
+
+        </button>
+
+
+        <button
+            class="primary-button"
+            onclick="openApp('word.html')">
+
+            ＋ New document
+
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =======================================================
+     CREATE
+======================================================= -->
+
+<section class="section">
+
+    <div class="section-header">
+
+        <div class="section-title">
+            Create something
+        </div>
+
+
+        <button
+            class="section-action"
+            onclick="openApp('word.html')">
+
+            Start blank →
+
+        </button>
+
+    </div>
+
+
+    <div class="apps" id="apps">
+
+
+        <!-- WRITER -->
+
+        <div
+            class="app-card"
+            data-search="writer word document doc docx text letter report"
+            onclick="openApp('word.html')">
+
+            <div class="app-top">
+
+                <div class="app-icon word">
+                    W
+                </div>
+
+                <span class="app-arrow">
+                    ↗
+                </span>
+
+            </div>
+
+            <h3>
+                Writer
+            </h3>
+
+            <p>
+                Documents, letters,
+                reports and formatted text.
+            </p>
+
+        </div>
+
+
+        <!-- SHEETS -->
+
+        <div
+            class="app-card"
+            data-search="sheets excel spreadsheet xlsx csv table formulas data"
+            onclick="openApp('sheets.html')">
+
+            <div class="app-top">
+
+                <div class="app-icon sheets">
+                    X
+                </div>
+
+                <span class="app-arrow">
+                    ↗
+                </span>
+
+            </div>
+
+            <h3>
+                Sheets
+            </h3>
+
+            <p>
+                Tables, formulas,
+                data and spreadsheets.
+            </p>
+
+        </div>
+
+
+        <!-- SLIDES -->
+
+        <div
+            class="app-card"
+            data-search="slides powerpoint presentation ppt pptx"
+            onclick="openApp('ppt.html')">
+
+            <div class="app-top">
+
+                <div class="app-icon slides">
+                    P
+                </div>
+
+                <span class="app-arrow">
+                    ↗
+                </span>
+
+            </div>
+
+            <h3>
+                Slides
+            </h3>
+
+            <p>
+                Presentations, layouts
+                and visual documents.
+            </p>
+
+        </div>
+
+
+        <!-- PDF -->
+
+        <div
+            class="app-card"
+            data-search="pdf portable document viewer"
+            onclick="openApp('pdf.html')">
+
+            <div class="app-top">
+
+                <div class="app-icon pdf">
+                    PDF
+                </div>
+
+                <span class="app-arrow">
+                    ↗
+                </span>
+
+            </div>
+
+            <h3>
+                PDF
+            </h3>
+
+            <p>
+                View and manage
+                PDF documents.
+            </p>
+
+        </div>
+
+
+        <!-- NOTES -->
+
+        <div
+            class="app-card"
+            data-search="notes note memo txt anotes"
+            onclick="openApp('notes.html')">
+
+            <div class="app-top">
+
+                <div class="app-icon notes">
+                    N
+                </div>
+
+                <span class="app-arrow">
+                    ↗
+                </span>
+
+            </div>
+
+            <h3>
+                Notes
+            </h3>
+
+            <p>
+                Fast notes and
+                lightweight documents.
+            </p>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+<!-- =======================================================
+     WORKSPACE
+======================================================= -->
+
+<section class="section">
+
+<div class="workspace-grid">
+
+
+<!-- RECENT -->
+
+<div class="panel">
+
+    <div class="panel-header">
+
+        <strong>
+            Recent documents
+        </strong>
+
+        <span id="recentCount">
+            0 files
+        </span>
+
+    </div>
+
+
+    <div
+        class="recent-list"
+        id="recentList">
+
+    </div>
+
+</div>
+
+
+<!-- QUICK ACTIONS -->
+
+<div class="panel">
+
+    <div class="panel-header">
+
+        <strong>
+            Quick actions
+        </strong>
+
+        <span>
+            Account
+        </span>
+
+    </div>
+
+
+    <div class="quick-grid">
+
+
+        <button
+            class="quick"
+            onclick="openApp('word.html')">
+
+            <div class="quick-icon">
+                ＋
+            </div>
+
+            <div>
+
+                <b>
+                    Blank document
+                </b>
+
+                <small>
+                    Start writing
+                </small>
+
+            </div>
+
+        </button>
+
+
+        <button
+            class="quick"
+            onclick="openApp('sheets.html')">
+
+            <div class="quick-icon">
+                ▦
+            </div>
+
+            <div>
+
+                <b>
+                    Blank sheet
+                </b>
+
+                <small>
+                    Start calculating
+                </small>
+
+            </div>
+
+        </button>
+
+
+        <button
+            class="quick"
+            onclick="openApp('ppt.html')">
+
+            <div class="quick-icon">
+                ▣
+            </div>
+
+            <div>
+
+                <b>
+                    New presentation
+                </b>
+
+                <small>
+                    Build slides
+                </small>
+
+            </div>
+
+        </button>
+
+
+        <button
+            class="quick"
+            onclick="openFilePicker()">
+
+            <div class="quick-icon">
+                ↥
+            </div>
+
+            <div>
+
+                <b>
+                    Import file
+                </b>
+
+                <small>
+                    Open from device
+                </small>
+
+            </div>
+
+        </button>
+
+    </div>
+
+
+    <div class="tip">
+
+        <b>
+            Tip:
+        </b>
+
+        Your recent list only contains
+        real files/actions from the workspace.
+        Nothing is pre-filled.
+
+    </div>
+
+</div>
+
+
+</div>
+
+</section>
+
+
+<!-- =======================================================
+     IMPORT
+======================================================= -->
+
+<section class="section">
+
+<div class="panel">
+
+    <div class="panel-header">
+
+        <strong>
+            Open a file
+        </strong>
+
+        <span>
+            Drag & drop supported
+        </span>
+
+    </div>
+
+
+    <div
+        class="drop-area"
+        id="dropArea">
+
+        <div class="drop-icon">
+            ↥
+        </div>
+
+        <h3>
+            Drop a document here
+        </h3>
+
+        <p>
+            Or choose a file from your computer
+            and continue working on it.
+        </p>
+
+
+        <button
+            class="primary-button"
+            onclick="openFilePicker()">
+
+            Choose file
+
+        </button>
+
+
+        <div class="supported">
+            DOC · DOCX · XLS · XLSX · CSV · PPT ·
+            PPTX · PDF · TXT · ANOTES
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+
+<input
+    type="file"
+    id="fileInput"
+    hidden
+    accept=".doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.pdf,.txt,.anotes">
+
+
+<footer class="footer">
+
+    A-Zpace
+    ·
+    Private, account-synced document software
+
+</footer>
+
+
+</main>
+
+</div>
+
+</div>
+
+
+<!-- =======================================================
+     MODAL
+======================================================= -->
+
+<div
+    class="modal-overlay"
+    id="modal">
+
+    <div class="modal">
+
+        <h2 id="modalTitle">
+            Unsupported file
+        </h2>
+
+        <p id="modalText">
+            This file format isn't supported yet.
+        </p>
+
+        <div class="modal-actions">
+
+            <button
+                class="close-button"
+                onclick="closeModal()">
+
+                Close
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="toast"
+    id="toast">
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const RECENT_KEY =
+    "dw-real-recent-files";
+
+const FILE_DB =
+    "dw-workspace-files";
+
+const FILE_STORE =
+    "pending";
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function openApp(page) {
+
+    window.location.href =
+        page;
+
+}
+
+
+function scrollTopPage() {
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+    closeSidebar();
+
+}
+
+
+function toggleSidebar() {
+
+    document.body.classList.toggle(
+        "sidebar-open"
+    );
+
+}
+
+
+function closeSidebar() {
+
+    document.body.classList.remove(
+        "sidebar-open"
+    );
+
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+function focusSearch() {
+
+    const search =
+        document.getElementById(
+            "search"
+        );
+
+    search.focus();
+
+    closeSidebar();
+
+}
+
+
+const search =
+    document.getElementById(
+        "search"
+    );
+
+
+search.addEventListener(
+    "input",
+    function () {
+
+        const query =
+            search.value
+                .trim()
+                .toLowerCase();
+
+
+        document
+            .querySelectorAll(
+                ".app-card"
+            )
+            .forEach(
+                card => {
+
+                    const text =
+                        (
+                            card.innerText +
+                            " " +
+                            card.dataset.search
+                        )
+                        .toLowerCase();
+
+
+                    card.style.display =
+                        !query ||
+                        text.includes(query)
+                            ? ""
+                            : "none";
+
+                }
+            );
+
+
+        document
+            .querySelectorAll(
+                ".recent-item"
+            )
+            .forEach(
+                item => {
+
+                    const text =
+                        item.innerText
+                            .toLowerCase();
+
+
+                    item.style.display =
+                        !query ||
+                        text.includes(query)
+                            ? ""
+                            : "none";
+
+                }
+            );
+
+    }
+);
+
+
+/* =========================================================
+   KEYBOARD SHORTCUT
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            (event.ctrlKey ||
+             event.metaKey) &&
+            event.key.toLowerCase() === "k"
+        ) {
+
+            event.preventDefault();
+
+            focusSearch();
+
+        }
+
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            closeSidebar();
+            closeModal();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   THEME
+========================================================= */
+
+function toggleTheme() {
+
+    document.body.classList.toggle(
+        "dark"
+    );
+
+
+    localStorage.setItem(
+        "dw-theme",
+
+        document.body.classList.contains(
+            "dark"
+        )
+            ? "dark"
+            : "light"
+    );
+
+}
+
+
+function loadTheme() {
+
+    const theme =
+        localStorage.getItem(
+            "dw-theme"
+        );
+
+
+    if (
+        theme === "dark"
+    ) {
+
+        document.body.classList.add(
+            "dark"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   RECENT FILES
+========================================================= */
+
+function getRecentFiles() {
+
+    try {
+
+        return JSON.parse(
+            localStorage.getItem(
+                RECENT_KEY
+            )
+        ) || [];
+
+    }
+
+    catch {
+
+        return [];
+
+    }
+
+}
+
+
+function saveRecentFiles(
+    files
+) {
+
+    localStorage.setItem(
+        RECENT_KEY,
+
+        JSON.stringify(
+            files.slice(0, 30)
+        )
+    );
+
+}
+
+
+function addRecentFile(
+    file
+) {
+
+    if (
+        !file ||
+        !file.name
+    ) {
+
+        return;
+
+    }
+
+
+    let files =
+        getRecentFiles();
+
+
+    files =
+        files.filter(
+            item => {
+
+                if (
+                    file.id
+                ) {
+
+                    return (
+                        item.id !==
+                        file.id
+                    );
+
+                }
+
+
+                return !(
+                    item.name ===
+                        file.name &&
+
+                    item.type ===
+                        file.type &&
+
+                    item.url ===
+                        (
+                            file.url ||
+                            null
+                        )
+                );
+
+            }
+        );
+
+
+    files.unshift({
+
+        id:
+            file.id ||
+            null,
+
+        name:
+            file.name,
+
+        type:
+            file.type ||
+            "file",
+
+        url:
+            file.url ||
+            null,
+
+        timestamp:
+            Date.now()
+
+    });
+
+
+    saveRecentFiles(
+        files
+    );
+
+
+    renderRecentFiles();
+
+}
+
+
+/*
+    Public API for your other apps.
+
+    Example:
+
+    DocumentWorkspace.addRecentFile({
+        name: "My Document.docx",
+        type: "word",
+        url: "word.html"
+    });
+*/
+
+window.DocumentWorkspace = {
+
+    addRecentFile,
+
+    getRecentFiles,
+
+    saveRecentFiles
+
+};
+
+
+/* =========================================================
+   FILE INFO
+========================================================= */
+
+function getFileInfo(
+    type
+) {
+
+    type =
+        String(type || "")
+            .toLowerCase();
+
+
+    if (
+        type.includes("word") ||
+        type === "doc" ||
+        type === "docx"
+    ) {
+
+        return {
+
+            label: "Writer",
+            icon: "W",
+            className: "word"
+
+        };
+
+    }
+
+
+    if (
+        type.includes("sheet") ||
+        type.includes("excel") ||
+        type === "xls" ||
+        type === "xlsx" ||
+        type === "csv"
+    ) {
+
+        return {
+
+            label: "Sheets",
+            icon: "X",
+            className: "sheets"
+
+        };
+
+    }
+
+
+    if (
+        type.includes("powerpoint") ||
+        type.includes("presentation") ||
+        type === "ppt" ||
+        type === "pptx"
+    ) {
+
+        return {
+
+            label: "Slides",
+            icon: "P",
+            className: "slides"
+
+        };
+
+    }
+
+
+    if (
+        type.includes("pdf")
+    ) {
+
+        return {
+
+            label: "PDF",
+            icon: "PDF",
+            className: "pdf"
+
+        };
+
+    }
+
+
+    return {
+
+        label: "Notes",
+        icon: "N",
+        className: "notes"
+
+    };
+
+}
+
+
+/* =========================================================
+   TIME
+========================================================= */
+
+function formatTime(
+    timestamp
+) {
+
+    if (!timestamp) {
+
+        return "";
+
+    }
+
+
+    const date =
+        new Date(
+            timestamp
+        );
+
+
+    const now =
+        new Date();
+
+
+    const difference =
+        now - date;
+
+
+    const minute =
+        60 * 1000;
+
+    const hour =
+        60 * minute;
+
+    const day =
+        24 * hour;
+
+
+    if (
+        difference <
+        minute
+    ) {
+
+        return "Just now";
+
+    }
+
+
+    if (
+        difference <
+        hour
+    ) {
+
+        return (
+            Math.floor(
+                difference /
+                minute
+            ) +
+            " min ago"
+        );
+
+    }
+
+
+    if (
+        difference <
+        day
+    ) {
+
+        return (
+            Math.floor(
+                difference /
+                hour
+            ) +
+            " hr ago"
+        );
+
+    }
+
+
+    if (
+        difference <
+        7 * day
+    ) {
+
+        const number =
+            Math.floor(
+                difference /
+                day
+            );
+
+
+        return (
+            number +
+            " day" +
+            (
+                number > 1
+                    ? "s"
+                    : ""
+            ) +
+            " ago"
+        );
+
+    }
+
+
+    return date.toLocaleDateString();
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHTML(
+    value
+) {
+
+    return String(
+        value
+    )
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================================
+   RENDER RECENT
+========================================================= */
+
+function renderRecentFiles() {
+
+    const container =
+        document.getElementById(
+            "recentList"
+        );
+
+
+    const files =
+        getRecentFiles();
+
+
+    const count =
+        document.getElementById(
+            "recentCount"
+        );
+
+
+    count.textContent =
+        files.length +
+        (
+            files.length === 1
+                ? " file"
+                : " files"
+        );
+
+
+    if (
+        !files.length
+    ) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                <div class="empty-inner">
+
+                    <div class="empty-icon">
+                        ▣
+                    </div>
+
+                    <h3>
+                        No recent documents
+                    </h3>
+
+                    <p>
+                        Documents you actually
+                        create or open in this
+                        workspace will appear here.
+                        Nothing is pre-filled.
+                    </p>
+
+                </div>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        files
+            .map(
+                (
+                    file,
+                    index
+                ) => {
+
+                    const info =
+                        getFileInfo(
+                            file.type
+                        );
+
+
+                    return `
+
+                        <div
+                            class="recent-item"
+                            onclick="openRecent(${index})">
+
+                            <div
+                                class="
+                                    file-icon
+                                    ${info.className}
+                                ">
+
+                                ${info.icon}
+
+                            </div>
+
+
+                            <div class="file-info">
+
+                                <div
+                                    class="file-name">
+
+                                    ${escapeHTML(
+                                        file.name
+                                    )}
+
+                                </div>
+
+
+                                <div
+                                    class="file-meta">
+
+                                    ${info.label}
+
+                                    ·
+
+                                    ${formatTime(
+                                        file.timestamp
+                                    )}
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="file-open">
+
+                                ${
+                                    file.url
+                                        ? "Open →"
+                                        : "Local"
+                                }
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   OPEN RECENT
+========================================================= */
+
+function openRecent(
+    index
+) {
+
+    const files =
+        getRecentFiles();
+
+
+    const file =
+        files[index];
+
+
+    if (!file) {
+
+        return;
+
+    }
+
+
+    if (
+        file.url
+    ) {
+
+        window.location.href =
+            file.url;
+
+        return;
+
+    }
+
+
+    showToast(
+        "This file is stored locally."
+    );
+
+}
+
+
+/* =========================================================
+   INDEXED DB
+========================================================= */
+
+function openDatabase() {
+
+    return new Promise(
+        (
+            resolve,
+            reject
+        ) => {
+
+            const request =
+                indexedDB.open(
+                    FILE_DB + ":" + window.AZpaceAuth.user.id,
+                    1
+                );
+
+
+            request.onupgradeneeded =
+                function () {
+
+                    if (
+                        !request.result.objectStoreNames
+                            .contains(FILE_STORE)
+                    ) {
+
+                        request.result.createObjectStore(
+                            FILE_STORE
+                        );
+
+                    }
+
+                };
+
+
+            request.onsuccess =
+                function () {
+
+                    resolve(
+                        request.result
+                    );
+
+                };
+
+
+            request.onerror =
+                function () {
+
+                    reject(
+                        request.error
+                    );
+
+                };
+
+        }
+    );
+
+}
+
+
+async function storePendingFile(
+    file
+) {
+
+    try {
+
+        const db =
+            await openDatabase();
+
+
+        await new Promise(
+            (
+                resolve,
+                reject
+            ) => {
+
+                const transaction =
+                    db.transaction(
+                        FILE_STORE,
+                        "readwrite"
+                    );
+
+
+                transaction
+                    .objectStore(
+                        FILE_STORE
+                    )
+                    .put(
+                        {
+                            name:
+                                file.name,
+
+                            type:
+                                file.type,
+
+                            size:
+                                file.size,
+
+                            blob:
+                                file
+
+                        },
+                        "current"
+                    );
+
+
+                transaction.oncomplete =
+                    resolve;
+
+
+                transaction.onerror =
+                    function () {
+
+                        reject(
+                            transaction.error
+                        );
+
+                    };
+
+            }
+        );
+
+
+        db.close();
+
+    }
+
+    catch (
+        error
+    ) {
+
+        console.warn(
+            "Could not cache file:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   FILE IMPORT
+========================================================= */
+
+const routes = {
+
+    doc:
+        "word.html",
+
+    docx:
+        "word.html",
+
+    xls:
+        "sheets.html",
+
+    xlsx:
+        "sheets.html",
+
+    csv:
+        "sheets.html",
+
+    ppt:
+        "ppt.html",
+
+    pptx:
+        "ppt.html",
+
+    pdf:
+        "pdf.html",
+
+    txt:
+        "word.html",
+
+    anotes:
+        "notes.html"
+
+};
+
+
+function openFilePicker() {
+
+    document
+        .getElementById(
+            "fileInput"
+        )
+        .click();
+
+}
+
+
+async function processFile(
+    file
+) {
+
+    if (!file) {
+
+        return;
+
+    }
+
+
+    const extension =
+        file.name
+            .split(".")
+            .pop()
+            .toLowerCase();
+
+
+    const destination =
+        routes[
+            extension
+        ];
+
+
+    if (!destination) {
+
+        showModal(
+            "This file format is not supported yet.",
+            "Unsupported file"
+        );
+
+        return;
+
+    }
+
+
+    await storePendingFile(
+        file
+    );
+
+
+    addRecentFile({
+
+        name:
+            file.name,
+
+        type:
+            extension,
+
+        url:
+            destination +
+            "?open=" +
+            encodeURIComponent(
+                file.name
+            )
+
+    });
+
+
+    showToast(
+        "Opening " +
+        file.name +
+        "..."
+    );
+
+
+    setTimeout(
+        function () {
+
+            window.location.href =
+                destination +
+                "?open=" +
+                encodeURIComponent(
+                    file.name
+                );
+
+        },
+        120
+    );
+
+}
+
+
+document
+    .getElementById(
+        "fileInput"
+    )
+    .addEventListener(
+        "change",
+        function (event) {
+
+            const file =
+                event.target.files[0];
+
+
+            processFile(
+                file
+            );
+
+
+            event.target.value =
+                "";
+
+        }
+    );
+
+
+/* =========================================================
+   DRAG & DROP
+========================================================= */
+
+const dropArea =
+    document.getElementById(
+        "dropArea"
+    );
+
+
+[
+    "dragenter",
+    "dragover"
+]
+.forEach(
+    eventName => {
+
+        dropArea.addEventListener(
+            eventName,
+            function (event) {
+
+                event.preventDefault();
+
+                dropArea.classList.add(
+                    "dragging"
+                );
+
+            }
+        );
+
+    }
+);
+
+
+[
+    "dragleave",
+    "drop"
+]
+.forEach(
+    eventName => {
+
+        dropArea.addEventListener(
+            eventName,
+            function (event) {
+
+                event.preventDefault();
+
+                dropArea.classList.remove(
+                    "dragging"
+                );
+
+            }
+        );
+
+    }
+);
+
+
+dropArea.addEventListener(
+    "drop",
+    function (event) {
+
+        const file =
+            event
+                .dataTransfer
+                .files[0];
+
+
+        processFile(
+            file
+        );
+
+    }
+);
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function showModal(
+    message,
+    title
+) {
+
+    document
+        .getElementById(
+            "modalTitle"
+        )
+        .textContent =
+        title ||
+        "Message";
+
+
+    document
+        .getElementById(
+            "modalText"
+        )
+        .textContent =
+        message;
+
+
+    document
+        .getElementById(
+            "modal"
+        )
+        .classList.add(
+            "show"
+        );
+
+}
+
+
+function closeModal() {
+
+    document
+        .getElementById(
+            "modal"
+        )
+        .classList.remove(
+            "show"
+        );
+
+}
+
+
+document
+    .getElementById(
+        "modal"
+    )
+    .addEventListener(
+        "click",
+        function (event) {
+
+            if (
+                event.target.id ===
+                "modal"
+            ) {
+
+                closeModal();
+
+            }
+
+        }
+    );
+
+
+function showAbout() {
+
+    showModal(
+        "A-Zpace is in private beta. Sign in to use Writer, Sheets, Slides, PDF and Notes; your workspace data is scoped to your account.",
+        "A-Zpace"
+    );
+
+}
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+let toastTimer;
+
+
+function showToast(
+    message
+) {
+
+    const toast =
+        document.getElementById(
+            "toast"
+        );
+
+
+    toast.textContent =
+        message;
+
+
+    toast.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        toastTimer
+    );
+
+
+    toastTimer =
+        setTimeout(
+            function () {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            2200
+        );
+
+}
+
+
+/* =========================================================
+   STORAGE EVENTS
+========================================================= */
+
+window.addEventListener(
+    "storage",
+    function (event) {
+
+        if (
+            event.key ===
+            RECENT_KEY
+        ) {
+
+            renderRecentFiles();
+
+        }
+
+
+        if (
+            event.key ===
+            "dw-theme"
+        ) {
+
+            loadTheme();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+window.AZpaceAuth.ready.then(session => {
+    if (!session) return;
+    loadTheme();
+    renderRecentFiles();
+});
+
+</script>
+
+</body>
+</html>

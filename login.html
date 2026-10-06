@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f6f7fb">
+    <title>Sign in — A-Zpace</title>
+    <link rel="stylesheet" href="azpace-auth.css">
+    <script>document.documentElement.classList.add("azpace-auth-pending");</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="azpace-auth.js"></script>
+    <script src="azpace-entitlements.js"></script>
+    <script src="azpace-auth-ui.js"></script>
+    <script src="azpace-login.js"></script>
+</head>
+<body class="azpace-auth-page">
+    <main class="azpace-auth-card">
+        <span class="beta">PRIVATE BETA</span>
+        <h1>A-Zpace</h1>
+        <p id="login-description">Sign in to access your private workspace.</p>
+        <div id="login-message" class="azpace-auth-message" role="status" aria-live="polite"></div>
+        <div id="auth-error-actions" class="form-actions" hidden>
+            <button class="primary" id="retry-workspace" type="button">Retry workspace</button>
+            <button id="error-signout" type="button">Log out</button>
+        </div>
+
+        <form id="login-form" data-auth-form="login">
+            <label class="field">Email
+                <input name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="field">Password
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <div class="form-actions">
+                <button class="primary" type="submit">Log in</button>
+                <button class="text-action" type="button" data-auth-show="reset">Forgot password?</button>
+                <button class="text-action" type="button" data-auth-show="signup">Create an account</button>
+            </div>
+        </form>
+
+        <form id="signup-form" data-auth-form="signup" hidden>
+            <label class="field">Display name
+                <input name="display_name" type="text" autocomplete="name" maxlength="80">
+            </label>
+            <label class="field">Email
+                <input name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="field">Password
+                <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+            </label>
+            <div class="form-actions">
+                <button class="primary" type="submit">Create account</button>
+                <button class="text-action" type="button" data-auth-show="login">Back to login</button>
+            </div>
+        </form>
+
+        <form id="reset-form" data-auth-form="reset" hidden>
+            <label class="field">Account email
+                <input name="email" type="email" autocomplete="email" required>
+            </label>
+            <div class="form-actions">
+                <button class="primary" type="submit">Send reset link</button>
+                <button class="text-action" type="button" data-auth-show="login">Back to login</button>
+            </div>
+        </form>
+
+        <form id="recovery-form" data-auth-form="recovery" hidden>
+            <label class="field">New password
+                <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+            </label>
+            <div class="form-actions">
+                <button class="primary" type="submit">Update password</button>
+                <button class="text-action" type="button" data-auth-show="login">Back to login</button>
+            </div>
+        </form>
+
+        <p class="fine-print">A-Zpace is in private beta. Your workspace is private to your account.</p>
+    </main>
+</body>
+</html>

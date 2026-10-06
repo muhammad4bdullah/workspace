@@ -1,0 +1,3430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A-Notes — A-Zpace</title>
+<link rel="stylesheet" href="azpace-auth.css">
+<script>document.documentElement.classList.add("azpace-auth-pending");</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="azpace-auth.js"></script>
+<script src="azpace-entitlements.js"></script>
+<script src="azpace-auth-ui.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+:root{
+    --accent:#9f4738;
+    --accent-dark:#82382d;
+    --accent-soft:#f4e8e5;
+    --green:#47715d;
+    --green-soft:#e8f0eb;
+    --bg:#f5f5f3;
+    --panel:#ffffff;
+    --border:#e5e3df;
+    --text:#242321;
+    --muted:#77736d;
+    --hover:#f3f1ee;
+    --danger:#b74444;
+    --sidebar:235px;
+    --notes:295px;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+}
+
+body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+}
+
+/* APP */
+
+.app{
+    width:100%;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+/* TOPBAR */
+
+.topbar{
+    height:58px;
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    padding:0 16px;
+    gap:12px;
+    flex-shrink:0;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:190px;
+}
+
+.logo{
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    background:var(--accent);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    font-size:16px;
+}
+
+.brand-name{
+    font-size:17px;
+    font-weight:650;
+    letter-spacing:-.2px;
+}
+
+.brand-ext{
+    color:var(--muted);
+    font-size:11px;
+    margin-left:-6px;
+}
+
+.top-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:7px;
+}
+
+button{
+    font-family:inherit;
+}
+
+.top-btn,
+.icon-btn,
+.tool-btn{
+    border:1px solid transparent;
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:.15s ease;
+}
+
+.top-btn{
+    height:34px;
+    padding:0 11px;
+    gap:7px;
+    border-radius:7px;
+    font-size:13px;
+}
+
+.top-btn:hover,
+.icon-btn:hover,
+.tool-btn:hover{
+    background:var(--hover);
+}
+
+.top-btn.primary{
+    background:var(--accent);
+    color:white;
+}
+
+.top-btn.primary:hover{
+    background:var(--accent-dark);
+}
+
+svg{
+    width:16px;
+    height:16px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+/* STATUS */
+
+.save-status{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    color:var(--muted);
+    padding:0 8px;
+}
+
+.status-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#6c947c;
+}
+
+.status-dot.unsaved{
+    background:#bd8050;
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    min-height:0;
+    display:flex;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:var(--sidebar);
+    background:#faf9f7;
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:12px 9px;
+    flex-shrink:0;
+}
+
+.sidebar-section-title{
+    padding:9px 10px 7px;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:#9a958d;
+    font-weight:700;
+}
+
+.nav-item{
+    width:100%;
+    min-height:36px;
+    border:0;
+    background:transparent;
+    border-radius:7px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 10px;
+    color:#56534e;
+    cursor:pointer;
+    font-size:13px;
+    text-align:left;
+}
+
+.nav-item:hover{
+    background:var(--hover);
+}
+
+.nav-item.active{
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-weight:600;
+}
+
+.nav-item .count{
+    margin-left:auto;
+    font-size:11px;
+    color:#aaa49c;
+}
+
+.folder-area{
+    margin-top:14px;
+    flex:1;
+    overflow:auto;
+}
+
+.folder-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:9px 10px 6px;
+}
+
+.folder-header span{
+    font-size:10px;
+    color:#9a958d;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+
+.small-add{
+    width:23px;
+    height:23px;
+    border:0;
+    border-radius:5px;
+    background:transparent;
+    color:#77736d;
+    cursor:pointer;
+}
+
+.small-add:hover{
+    background:var(--hover);
+}
+
+.folder-item{
+    min-height:34px;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:0 9px;
+    border-radius:7px;
+    cursor:pointer;
+    font-size:13px;
+    color:#5e5a54;
+}
+
+.folder-item:hover{
+    background:var(--hover);
+}
+
+.folder-item.active{
+    background:var(--accent-soft);
+    color:var(--accent);
+}
+
+.folder-item .folder-count{
+    margin-left:auto;
+    font-size:10px;
+    color:#aaa49c;
+}
+
+.sidebar-bottom{
+    border-top:1px solid var(--border);
+    padding-top:10px;
+    margin-top:10px;
+}
+
+/* NOTES LIST */
+
+.notes-list{
+    width:var(--notes);
+    background:#fff;
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    flex-shrink:0;
+}
+
+.notes-header{
+    height:55px;
+    padding:9px 11px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    gap:7px;
+}
+
+.search{
+    flex:1;
+    height:34px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:#faf9f7;
+    display:flex;
+    align-items:center;
+    padding:0 9px;
+    gap:7px;
+}
+
+.search svg{
+    color:#99948c;
+    width:14px;
+}
+
+.search input{
+    border:0;
+    outline:0;
+    background:transparent;
+    width:100%;
+    font-size:12px;
+    color:var(--text);
+}
+
+.sort-btn{
+    width:34px;
+    height:34px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:#fff;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#77736d;
+}
+
+.sort-btn:hover{
+    background:var(--hover);
+}
+
+.notes-scroll{
+    flex:1;
+    overflow-y:auto;
+}
+
+.note-card{
+    padding:13px 13px;
+    border-bottom:1px solid #eee;
+    cursor:pointer;
+    position:relative;
+}
+
+.note-card:hover{
+    background:#faf9f7;
+}
+
+.note-card.active{
+    background:var(--accent-soft);
+}
+
+.note-title{
+    font-size:13px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    padding-right:20px;
+}
+
+.note-preview{
+    margin-top:5px;
+    color:#858079;
+    font-size:11px;
+    line-height:1.4;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.note-meta{
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:#aaa49c;
+    font-size:10px;
+}
+
+.note-pin{
+    color:var(--accent);
+}
+
+.empty-list{
+    padding:40px 20px;
+    text-align:center;
+    color:#9b968e;
+    font-size:12px;
+}
+
+/* EDITOR */
+
+.editor{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    background:#fff;
+}
+
+.editor-top{
+    height:57px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    padding:0 20px;
+    gap:10px;
+}
+
+.title-input{
+    flex:1;
+    border:0;
+    outline:0;
+    font-size:20px;
+    font-weight:650;
+    color:var(--text);
+    min-width:0;
+}
+
+.title-input::placeholder{
+    color:#aaa59d;
+}
+
+.editor-actions{
+    display:flex;
+    gap:3px;
+}
+
+.icon-btn{
+    width:33px;
+    height:33px;
+    border-radius:6px;
+}
+
+.icon-btn.danger:hover{
+    color:var(--danger);
+    background:#f9eaea;
+}
+
+/* TOOLBAR */
+
+.toolbar{
+    min-height:44px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    gap:2px;
+    padding:4px 17px;
+    flex-wrap:wrap;
+}
+
+.tool-btn{
+    width:31px;
+    height:30px;
+    border-radius:5px;
+}
+
+.tool-btn.active{
+    background:var(--accent-soft);
+    color:var(--accent);
+}
+
+.tool-select{
+    height:30px;
+    border:1px solid var(--border);
+    background:#fff;
+    border-radius:5px;
+    padding:0 7px;
+    font-size:11px;
+    color:#555;
+    outline:0;
+}
+
+.tool-divider{
+    width:1px;
+    height:21px;
+    background:var(--border);
+    margin:0 4px;
+}
+
+/* CONTENT */
+
+.editor-body{
+    flex:1;
+    overflow:auto;
+}
+
+.editor-page{
+    max-width:850px;
+    margin:0 auto;
+    padding:42px 55px 100px;
+}
+
+.content{
+    min-height:450px;
+    outline:0;
+    font-size:15px;
+    line-height:1.75;
+    color:#30302e;
+}
+
+.content:empty:before{
+    content:"Start writing...";
+    color:#b2aea7;
+    pointer-events:none;
+}
+
+.content h1{
+    font-size:30px;
+    line-height:1.25;
+    margin:18px 0 10px;
+}
+
+.content h2{
+    font-size:23px;
+    line-height:1.3;
+    margin:16px 0 9px;
+}
+
+.content h3{
+    font-size:18px;
+    margin:14px 0 7px;
+}
+
+.content p{
+    margin:0 0 10px;
+}
+
+.content blockquote{
+    margin:14px 0;
+    padding:8px 15px;
+    border-left:3px solid var(--accent);
+    background:#faf7f5;
+    color:#69645d;
+}
+
+.content pre{
+    background:#292725;
+    color:#eee;
+    padding:14px;
+    border-radius:7px;
+    overflow:auto;
+    font-family:ui-monospace,monospace;
+    font-size:12px;
+}
+
+.content code{
+    font-family:ui-monospace,monospace;
+    background:#f0eeeb;
+    padding:2px 4px;
+    border-radius:3px;
+}
+
+.content ul,
+.content ol{
+    padding-left:25px;
+}
+
+.content a{
+    color:var(--accent);
+}
+
+/* FOOTER */
+
+.editor-footer{
+    height:30px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 18px;
+    color:#aaa59e;
+    font-size:10px;
+    flex-shrink:0;
+}
+
+/* MODAL */
+
+.modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(25,23,20,.28);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1000;
+}
+
+.modal-backdrop.open{
+    display:flex;
+}
+
+.modal{
+    width:min(430px,calc(100% - 30px));
+    background:white;
+    border-radius:11px;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);
+    border:1px solid var(--border);
+    overflow:hidden;
+}
+
+.modal-header{
+    padding:17px 19px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.modal-header h3{
+    font-size:15px;
+}
+
+.modal-body{
+    padding:18px;
+}
+
+.modal-body label{
+    display:block;
+    font-size:11px;
+    color:#77736d;
+    margin-bottom:6px;
+}
+
+.modal-input{
+    width:100%;
+    height:38px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    outline:0;
+    padding:0 11px;
+    font-size:13px;
+}
+
+.modal-input:focus{
+    border-color:#c69b91;
+    box-shadow:0 0 0 3px var(--accent-soft);
+}
+
+.modal-footer{
+    padding:12px 18px;
+    border-top:1px solid var(--border);
+    display:flex;
+    justify-content:flex-end;
+    gap:7px;
+}
+
+.modal-btn{
+    height:34px;
+    padding:0 13px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:white;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.modal-btn:hover{
+    background:var(--hover);
+}
+
+.modal-btn.primary{
+    color:#fff;
+    border-color:var(--accent);
+    background:var(--accent);
+}
+
+.modal-btn.danger{
+    color:#fff;
+    border-color:var(--danger);
+    background:var(--danger);
+}
+
+/* CONTEXT MENU */
+
+.context-menu{
+    position:fixed;
+    z-index:2000;
+    width:170px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    box-shadow:0 10px 35px rgba(0,0,0,.13);
+    padding:5px;
+    display:none;
+}
+
+.context-menu.open{
+    display:block;
+}
+
+.context-item{
+    width:100%;
+    height:31px;
+    border:0;
+    background:transparent;
+    border-radius:5px;
+    cursor:pointer;
+    text-align:left;
+    padding:0 9px;
+    font-size:12px;
+    color:#45423e;
+}
+
+.context-item:hover{
+    background:var(--hover);
+}
+
+.context-item.danger{
+    color:var(--danger);
+}
+
+/* DROP */
+
+.drop-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(159,71,56,.08);
+    border:3px dashed var(--accent);
+    z-index:3000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+}
+
+.drop-overlay.show{
+    display:flex;
+}
+
+.drop-message{
+    background:#fff;
+    padding:25px 35px;
+    border-radius:12px;
+    box-shadow:0 10px 40px rgba(0,0,0,.15);
+    color:var(--accent);
+    font-weight:600;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:850px){
+    :root{
+        --sidebar:190px;
+        --notes:260px;
+    }
+
+    .brand{
+        min-width:auto;
+    }
+
+    .brand-ext,
+    .save-status{
+        display:none;
+    }
+
+    .editor-page{
+        padding:30px 30px 80px;
+    }
+}
+
+@media(max-width:650px){
+    .sidebar{
+        width:55px;
+        padding:8px 6px;
+    }
+
+    .sidebar .nav-item span,
+    .sidebar-section-title,
+    .folder-header span,
+    .folder-item span,
+    .folder-count,
+    .sidebar-bottom{
+        display:none;
+    }
+
+    .nav-item,
+    .folder-item{
+        justify-content:center;
+        padding:0;
+    }
+
+    .folder-header{
+        justify-content:center;
+    }
+
+    .notes-list{
+        width:220px;
+    }
+
+    .top-btn span{
+        display:none;
+    }
+
+    .top-btn{
+        width:34px;
+        padding:0;
+    }
+
+    .editor-page{
+        padding:25px 18px 70px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+
+        <div class="brand">
+            <div class="logo">N</div>
+            <div class="brand-name">A-Notes</div>
+            <div class="brand-ext">.anotes</div>
+        </div>
+
+        <div class="save-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="saveStatus">Saved locally</span>
+        </div>
+
+        <div class="top-actions">
+
+            <button class="top-btn" id="openBtn" title="Open .anotes">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/>
+                </svg>
+                <span>Open</span>
+            </button>
+
+            <button class="top-btn" id="saveBtn" title="Save .anotes">
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 3h11l3 3v15H5z"/>
+                    <path d="M8 3v6h8V3M8 21v-7h8v7"/>
+                </svg>
+                <span>Save</span>
+            </button>
+
+            <button class="top-btn" id="exportBtn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v12"/>
+                    <path d="m7 10 5 5 5-5"/>
+                    <path d="M5 21h14"/>
+                </svg>
+                <span>Export</span>
+            </button>
+
+            <button class="top-btn" id="workspaceBtn" title="Back to workspace">
+                <svg viewBox="0 0 24 24">
+                    <path d="m15 18-6-6 6-6"/>
+                </svg>
+                <span>Workspace</span>
+            </button>
+
+            <button class="top-btn primary" id="newNoteBtn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                <span>New Note</span>
+            </button>
+
+        </div>
+
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="sidebar-section-title">Library</div>
+
+            <button class="nav-item active" data-view="all">
+                <svg viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <path d="M8 8h8M8 12h8M8 16h5"/>
+                </svg>
+                <span>All Notes</span>
+                <span class="count" id="allCount">0</span>
+            </button>
+
+            <button class="nav-item" data-view="pinned">
+                <svg viewBox="0 0 24 24">
+                    <path d="m8 4 8 0 1 7 3 3H4l3-3z"/>
+                    <path d="M12 14v6"/>
+                </svg>
+                <span>Pinned</span>
+                <span class="count" id="pinnedCount">0</span>
+            </button>
+
+            <button class="nav-item" data-view="archive">
+                <svg viewBox="0 0 24 24">
+                    <path d="M4 7h16v13H4z"/>
+                    <path d="M3 4h18v3H3zM9 11h6"/>
+                </svg>
+                <span>Archive</span>
+                <span class="count" id="archiveCount">0</span>
+            </button>
+
+            <button class="nav-item" data-view="trash">
+                <svg viewBox="0 0 24 24">
+                    <path d="M5 7h14M10 11v6M14 11v6"/>
+                    <path d="M9 7V4h6v3M7 7l1 14h8l1-14"/>
+                </svg>
+                <span>Trash</span>
+                <span class="count" id="trashCount">0</span>
+            </button>
+
+            <div class="folder-area">
+
+                <div class="folder-header">
+                    <span>Folders</span>
+                    <button class="small-add" id="newFolderBtn" title="New Folder">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div id="folderList"></div>
+
+            </div>
+
+        </aside>
+
+        <!-- NOTE LIST -->
+        <section class="notes-list">
+
+            <div class="notes-header">
+
+                <div class="search">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="6.5"/>
+                        <path d="m16 16 5 5"/>
+                    </svg>
+                    <input id="searchInput" placeholder="Search notes...">
+                </div>
+
+                <button class="sort-btn" id="sortBtn" title="Sort">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 6h12M8 12h9M8 18h6"/>
+                        <path d="M4 5v14M2 7l2-2 2 2"/>
+                    </svg>
+                </button>
+
+            </div>
+
+            <div class="notes-scroll" id="notesList"></div>
+
+        </section>
+
+        <!-- EDITOR -->
+        <section class="editor">
+
+            <div class="editor-top">
+
+                <input
+                    class="title-input"
+                    id="titleInput"
+                    placeholder="Untitled Note"
+                    autocomplete="off"
+                >
+
+                <div class="editor-actions">
+
+                    <button class="icon-btn" id="pinBtn" title="Pin">
+                        <svg viewBox="0 0 24 24">
+                            <path d="m8 4 8 0 1 7 3 3H4l3-3z"/>
+                            <path d="M12 14v6"/>
+                        </svg>
+                    </button>
+
+                    <button class="icon-btn" id="archiveBtn" title="Archive">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 7h16v13H4z"/>
+                            <path d="M3 4h18v3H3zM9 11h6"/>
+                        </svg>
+                    </button>
+
+                    <button class="icon-btn danger" id="deleteBtn" title="Delete">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M5 7h14M10 11v6M14 11v6"/>
+                            <path d="M9 7V4h6v3M7 7l1 14h8l1-14"/>
+                        </svg>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- TOOLBAR -->
+            <div class="toolbar">
+
+                <select class="tool-select" id="formatSelect">
+                    <option value="p">Normal</option>
+                    <option value="h1">Heading 1</option>
+                    <option value="h2">Heading 2</option>
+                    <option value="h3">Heading 3</option>
+                </select>
+
+                <div class="tool-divider"></div>
+
+                <button class="tool-btn" data-command="bold" title="Bold">
+                    <b>B</b>
+                </button>
+
+                <button class="tool-btn" data-command="italic" title="Italic">
+                    <i>I</i>
+                </button>
+
+                <button class="tool-btn" data-command="underline" title="Underline">
+                    <u>U</u>
+                </button>
+
+                <button class="tool-btn" data-command="strikeThrough" title="Strike">
+                    <s>S</s>
+                </button>
+
+                <div class="tool-divider"></div>
+
+                <button class="tool-btn" data-command="justifyLeft" title="Align left">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 6h16M4 10h11M4 14h16M4 18h11"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" data-command="justifyCenter" title="Center">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 6h16M7 10h10M4 14h16M7 18h10"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" data-command="justifyRight" title="Align right">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 6h16M9 10h11M4 14h16M9 18h11"/>
+                    </svg>
+                </button>
+
+                <div class="tool-divider"></div>
+
+                <button class="tool-btn" data-command="insertUnorderedList" title="Bulleted list">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 6h11M9 12h11M9 18h11"/>
+                        <path d="M4 6h.01M4 12h.01M4 18h.01"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" data-command="insertOrderedList" title="Numbered list">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 6h11M9 12h11M9 18h11"/>
+                        <path d="M4 5h1v3M4 8h2M4 11h2M4 11v3h2"/>
+                        <path d="M4 17h2l-2 4h2"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" id="checklistBtn" title="Checklist">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="4" y="5" width="4" height="4" rx="1"/>
+                        <path d="m5 7 1 1 2-2M11 7h9"/>
+                        <rect x="4" y="15" width="4" height="4" rx="1"/>
+                        <path d="m5 17 1 1 2-2M11 17h9"/>
+                    </svg>
+                </button>
+
+                <div class="tool-divider"></div>
+
+                <button class="tool-btn" id="linkBtn" title="Insert link">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.2 1.2"/>
+                        <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.2-1.2"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" id="quoteBtn" title="Quote">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M5 6h14M5 12h10M5 18h14"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" id="codeBtn" title="Code">
+                    <svg viewBox="0 0 24 24">
+                        <path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>
+                    </svg>
+                </button>
+
+                <div class="tool-divider"></div>
+
+                <button class="tool-btn" id="undoBtn" title="Undo">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 7 4 12l5 5"/>
+                        <path d="M4 12h10a6 6 0 0 1 6 6"/>
+                    </svg>
+                </button>
+
+                <button class="tool-btn" id="redoBtn" title="Redo">
+                    <svg viewBox="0 0 24 24">
+                        <path d="m15 7 5 5-5 5"/>
+                        <path d="M20 12H10a6 6 0 0 0-6 6"/>
+                    </svg>
+                </button>
+
+            </div>
+
+            <div class="editor-body">
+
+                <div class="editor-page">
+
+                    <div
+                        class="content"
+                        id="content"
+                        contenteditable="true"
+                        spellcheck="true"
+                    ></div>
+
+                </div>
+
+            </div>
+
+            <div class="editor-footer">
+                <span id="wordCount">0 words</span>
+                <span id="charCount">0 characters</span>
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<!-- MODAL -->
+
+<div class="modal-backdrop" id="modalBackdrop">
+
+    <div class="modal">
+
+        <div class="modal-header">
+            <h3 id="modalTitle">New Note</h3>
+
+            <button class="icon-btn" id="modalClose">
+                <svg viewBox="0 0 24 24">
+                    <path d="m6 6 12 12M18 6 6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+
+            <label id="modalLabel">Name</label>
+
+            <input
+                class="modal-input"
+                id="modalInput"
+                autocomplete="off"
+            >
+
+        </div>
+
+        <div class="modal-footer">
+
+            <button class="modal-btn" id="modalCancel">
+                Cancel
+            </button>
+
+            <button class="modal-btn primary" id="modalConfirm">
+                Create
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- CONTEXT MENU -->
+
+<div class="context-menu" id="contextMenu">
+
+    <button class="context-item" data-action="rename">
+        Rename
+    </button>
+
+    <button class="context-item" data-action="pin">
+        Pin / Unpin
+    </button>
+
+    <button class="context-item" data-action="archive">
+        Archive
+    </button>
+
+    <button class="context-item" data-action="move">
+        Move to Folder
+    </button>
+
+    <button class="context-item danger" data-action="delete">
+        Move to Trash
+    </button>
+
+</div>
+
+<!-- DROP OVERLAY -->
+
+<div class="drop-overlay" id="dropOverlay">
+    <div class="drop-message">
+        Drop .anotes file to open
+    </div>
+</div>
+
+<input
+    type="file"
+    id="fileInput"
+    accept=".anotes"
+    hidden
+>
+
+<script>
+/* =========================================================
+   A-NOTES CORE
+   ========================================================= */
+
+const STORAGE_KEY = "a-notes.workspace.v1";
+
+const state = {
+    notes: [],
+    folders: [],
+    currentNoteId: null,
+    currentView: "all",
+    currentFolderId: null,
+    search: "",
+    sort: "updated"
+};
+
+let saveTimer = null;
+let modalMode = null;
+let modalData = null;
+let contextNoteId = null;
+
+
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+
+function uid(prefix = "id"){
+    return prefix + "_" +
+        Date.now().toString(36) +
+        "_" +
+        Math.random().toString(36).slice(2,9);
+}
+
+function now(){
+    return new Date().toISOString();
+}
+
+function escapeHTML(str){
+    return String(str ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+}
+
+function stripHTML(html){
+    const div = document.createElement("div");
+    div.innerHTML = html || "";
+    return div.textContent || div.innerText || "";
+}
+
+function sanitizeFileName(name){
+    let value = String(name || "Untitled")
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g,"")
+        .replace(/\s+/g," ")
+        .trim()
+        .replace(/\.+$/,"");
+
+    if(!value) value = "Untitled";
+
+    return value.slice(0,120);
+}
+
+function formatDate(iso){
+    if(!iso) return "";
+
+    const d = new Date(iso);
+    const nowDate = new Date();
+
+    if(
+        d.getFullYear() === nowDate.getFullYear() &&
+        d.getMonth() === nowDate.getMonth() &&
+        d.getDate() === nowDate.getDate()
+    ){
+        return d.toLocaleTimeString([],{
+            hour:"numeric",
+            minute:"2-digit"
+        });
+    }
+
+    return d.toLocaleDateString([],{
+        month:"short",
+        day:"numeric"
+    });
+}
+
+function textPreview(html){
+    const text = stripHTML(html)
+        .replace(/\s+/g," ")
+        .trim();
+
+    return text || "No content";
+}
+
+function countWords(text){
+    const clean = text.trim();
+    return clean ? clean.split(/\s+/).length : 0;
+}
+
+
+/* =========================================================
+   UTF-8 BASE64
+   ========================================================= */
+
+function encode64(text){
+    const bytes = new TextEncoder().encode(text);
+    let binary = "";
+
+    const chunk = 0x8000;
+
+    for(let i=0;i<bytes.length;i+=chunk){
+        binary += String.fromCharCode(
+            ...bytes.subarray(i,i+chunk)
+        );
+    }
+
+    return btoa(binary);
+}
+
+function decode64(value){
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+
+    for(let i=0;i<binary.length;i++){
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new TextDecoder().decode(bytes);
+}
+
+
+/* =========================================================
+   DEFAULT WORKSPACE
+   ========================================================= */
+
+function createDefaultWorkspace(){
+    state.notes = [];
+    state.folders = [];
+    state.currentNoteId = null;
+    state.currentFolderId = null;
+}
+
+function createNote(title = "Untitled Note", folderId = null){
+    const timestamp = now();
+
+    return {
+        id: uid("note"),
+        title,
+        content: "",
+        folderId,
+        pinned: false,
+        archived: false,
+        deleted: false,
+        createdAt: timestamp,
+        updatedAt: timestamp
+    };
+}
+
+function createFolder(name){
+    return {
+        id: uid("folder"),
+        name,
+        createdAt: now()
+    };
+}
+
+
+/* =========================================================
+   LOCAL STORAGE
+   ========================================================= */
+
+function saveWorkspace(){
+    try{
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+                version:1,
+                notes:state.notes,
+                folders:state.folders
+            })
+        );
+
+        updateSaveStatus(true);
+    }catch(error){
+        console.error(error);
+        updateSaveStatus(false,"Storage error");
+    }
+}
+
+function loadWorkspace(){
+    try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+
+        if(!raw){
+            createDefaultWorkspace();
+            return;
+        }
+
+        const data = JSON.parse(raw);
+
+        if(!data || typeof data !== "object"){
+            createDefaultWorkspace();
+            return;
+        }
+
+        state.notes = Array.isArray(data.notes)
+            ? data.notes
+            : [];
+
+        state.folders = Array.isArray(data.folders)
+            ? data.folders
+            : [];
+
+    }catch(error){
+        console.error("Workspace load failed:",error);
+        createDefaultWorkspace();
+    }
+}
+
+function scheduleSave(){
+    updateSaveStatus(false);
+
+    clearTimeout(saveTimer);
+
+    saveTimer = setTimeout(()=>{
+        saveWorkspace();
+    },400);
+}
+
+function updateSaveStatus(saved=true, custom=null){
+    const text = document.getElementById("saveStatus");
+    const dot = document.getElementById("statusDot");
+
+    if(custom){
+        text.textContent = custom;
+        dot.classList.add("unsaved");
+        return;
+    }
+
+    if(saved){
+        text.textContent = "Saved locally";
+        dot.classList.remove("unsaved");
+    }else{
+        text.textContent = "Unsaved changes";
+        dot.classList.add("unsaved");
+    }
+}
+
+
+/* =========================================================
+   NOTE OPERATIONS
+   ========================================================= */
+
+function getCurrentNote(){
+    return state.notes.find(
+        note => note.id === state.currentNoteId
+    ) || null;
+}
+
+function selectNote(id){
+    const note = state.notes.find(n => n.id === id);
+
+    if(!note) return;
+
+    state.currentNoteId = id;
+
+    renderNotes();
+    renderEditor();
+
+    requestAnimationFrame(()=>{
+        document.getElementById("titleInput").focus();
+    });
+}
+
+function createNewNote(){
+    let folderId = state.currentFolderId;
+
+    if(state.currentView !== "folder"){
+        folderId = null;
+    }
+
+    const note = createNote("Untitled Note",folderId);
+
+    state.notes.unshift(note);
+
+    state.currentNoteId = note.id;
+
+    saveWorkspace();
+
+    renderAll();
+
+    setTimeout(()=>{
+        const title = document.getElementById("titleInput");
+        title.focus();
+        title.select();
+    },50);
+}
+
+function updateCurrentNote(){
+    const note = getCurrentNote();
+
+    if(!note) return;
+
+    note.title =
+        document.getElementById("titleInput").value.trim()
+        || "Untitled Note";
+
+    note.content =
+        document.getElementById("content").innerHTML;
+
+    note.updatedAt = now();
+
+    scheduleSave();
+    updateCounts();
+    renderNotes();
+}
+
+function togglePin(){
+    const note = getCurrentNote();
+
+    if(!note) return;
+
+    note.pinned = !note.pinned;
+    note.updatedAt = now();
+
+    saveWorkspace();
+    renderAll();
+}
+
+function toggleArchive(){
+    const note = getCurrentNote();
+
+    if(!note) return;
+
+    note.archived = !note.archived;
+    note.updatedAt = now();
+
+    saveWorkspace();
+
+    if(note.archived){
+        const next = getVisibleNotes().find(n => n.id !== note.id);
+        state.currentNoteId = next ? next.id : null;
+    }
+
+    renderAll();
+}
+
+function deleteCurrentNote(){
+    const note = getCurrentNote();
+
+    if(!note) return;
+
+    if(note.deleted){
+        permanentlyDelete(note.id);
+        return;
+    }
+
+    note.deleted = true;
+    note.archived = false;
+    note.pinned = false;
+    note.updatedAt = now();
+
+    const next = getVisibleNotes().find(n => n.id !== note.id);
+
+    state.currentNoteId = next ? next.id : null;
+
+    saveWorkspace();
+    renderAll();
+}
+
+function restoreNote(id){
+    const note = state.notes.find(n => n.id === id);
+
+    if(!note) return;
+
+    note.deleted = false;
+    note.updatedAt = now();
+
+    saveWorkspace();
+    renderAll();
+}
+
+function permanentlyDelete(id){
+    state.notes = state.notes.filter(n => n.id !== id);
+
+    if(state.currentNoteId === id){
+        state.currentNoteId = null;
+    }
+
+    saveWorkspace();
+    renderAll();
+}
+
+
+/* =========================================================
+   FOLDER OPERATIONS
+   ========================================================= */
+
+function createNewFolder(){
+    openModal(
+        "New Folder",
+        "Folder name",
+        "Create",
+        "folder"
+    );
+}
+
+function createFolderConfirmed(name){
+    name = name.trim();
+
+    if(!name) return;
+
+    const folder = createFolder(name);
+
+    state.folders.push(folder);
+
+    saveWorkspace();
+    renderAll();
+
+    state.currentView = "folder";
+    state.currentFolderId = folder.id;
+    state.currentNoteId = null;
+
+    renderAll();
+}
+
+function renameFolder(id){
+    const folder = state.folders.find(f => f.id === id);
+
+    if(!folder) return;
+
+    openModal(
+        "Rename Folder",
+        "Folder name",
+        "Save",
+        "rename-folder",
+        folder
+    );
+}
+
+function deleteFolder(id){
+    const folder = state.folders.find(f => f.id === id);
+
+    if(!folder) return;
+
+    const confirmed = confirm(
+        `Delete folder "${folder.name}"?\n\nNotes inside it will not be deleted.`
+    );
+
+    if(!confirmed) return;
+
+    state.notes.forEach(note=>{
+        if(note.folderId === id){
+            note.folderId = null;
+        }
+    });
+
+    state.folders = state.folders.filter(
+        f => f.id !== id
+    );
+
+    state.currentFolderId = null;
+    state.currentView = "all";
+
+    saveWorkspace();
+    renderAll();
+}
+
+function moveNoteToFolder(noteId){
+    const note = state.notes.find(n => n.id === noteId);
+
+    if(!note) return;
+
+    if(!state.folders.length){
+        alert("Create a folder first.");
+        return;
+    }
+
+    const names = state.folders
+        .map((folder,index)=>`${index + 1}. ${folder.name}`)
+        .join("\n");
+
+    const answer = prompt(
+        `Move "${note.title}" to:\n\n${names}\n\nEnter the folder number, or 0 for no folder.`
+    );
+
+    if(answer === null) return;
+
+    const number = Number(answer);
+
+    if(number === 0){
+        note.folderId = null;
+    }else if(
+        Number.isInteger(number) &&
+        number >= 1 &&
+        number <= state.folders.length
+    ){
+        note.folderId = state.folders[number - 1].id;
+    }else{
+        alert("Invalid folder number.");
+        return;
+    }
+
+    note.updatedAt = now();
+
+    saveWorkspace();
+    renderAll();
+}
+
+
+/* =========================================================
+   VIEW FILTERING
+   ========================================================= */
+
+function getVisibleNotes(){
+    let notes = [...state.notes];
+
+    if(state.currentView === "all"){
+        notes = notes.filter(n => !n.deleted && !n.archived);
+    }
+
+    if(state.currentView === "pinned"){
+        notes = notes.filter(
+            n => n.pinned && !n.deleted && !n.archived
+        );
+    }
+
+    if(state.currentView === "archive"){
+        notes = notes.filter(
+            n => n.archived && !n.deleted
+        );
+    }
+
+    if(state.currentView === "trash"){
+        notes = notes.filter(n => n.deleted);
+    }
+
+    if(state.currentView === "folder"){
+        notes = notes.filter(
+            n =>
+                !n.deleted &&
+                !n.archived &&
+                n.folderId === state.currentFolderId
+        );
+    }
+
+    const query = state.search.trim().toLowerCase();
+
+    if(query){
+        notes = notes.filter(note=>{
+            const text = (
+                note.title +
+                " " +
+                stripHTML(note.content)
+            ).toLowerCase();
+
+            return text.includes(query);
+        });
+    }
+
+    if(state.sort === "updated"){
+        notes.sort(
+            (a,b) =>
+                new Date(b.updatedAt) -
+                new Date(a.updatedAt)
+        );
+    }
+
+    if(state.sort === "created"){
+        notes.sort(
+            (a,b) =>
+                new Date(b.createdAt) -
+                new Date(a.createdAt)
+        );
+    }
+
+    if(state.sort === "title"){
+        notes.sort(
+            (a,b) =>
+                a.title.localeCompare(b.title)
+        );
+    }
+
+    return notes;
+}
+
+
+/* =========================================================
+   RENDER SIDEBAR
+   ========================================================= */
+
+function renderSidebar(){
+    document.querySelectorAll(".nav-item").forEach(item=>{
+        item.classList.toggle(
+            "active",
+            item.dataset.view === state.currentView
+        );
+    });
+
+    const folderList =
+        document.getElementById("folderList");
+
+    folderList.innerHTML = "";
+
+    state.folders.forEach(folder=>{
+        const count = state.notes.filter(
+            note =>
+                note.folderId === folder.id &&
+                !note.deleted &&
+                !note.archived
+        ).length;
+
+        const button = document.createElement("div");
+
+        button.className =
+            "folder-item" +
+            (
+                state.currentView === "folder" &&
+                state.currentFolderId === folder.id
+                    ? " active"
+                    : ""
+            );
+
+        button.innerHTML = `
+            <svg viewBox="0 0 24 24">
+                <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h8a1 1 0 0 1 1 1v10.5A2.5 2.5 0 0 1 17.5 20h-12A2.5 2.5 0 0 1 3 17.5z"/>
+            </svg>
+            <span>${escapeHTML(folder.name)}</span>
+            <span class="folder-count">${count}</span>
+        `;
+
+        button.addEventListener("click",()=>{
+            state.currentView = "folder";
+            state.currentFolderId = folder.id;
+            state.currentNoteId = null;
+
+            renderAll();
+        });
+
+        button.addEventListener("contextmenu",event=>{
+            event.preventDefault();
+
+            showFolderContextMenu(
+                event.clientX,
+                event.clientY,
+                folder.id
+            );
+        });
+
+        folderList.appendChild(button);
+    });
+}
+
+
+/* =========================================================
+   COUNTS
+   ========================================================= */
+
+function updateCounts(){
+    const active =
+        state.notes.filter(
+            n => !n.deleted && !n.archived
+        ).length;
+
+    const pinned =
+        state.notes.filter(
+            n => n.pinned && !n.deleted && !n.archived
+        ).length;
+
+    const archive =
+        state.notes.filter(
+            n => n.archived && !n.deleted
+        ).length;
+
+    const trash =
+        state.notes.filter(n => n.deleted).length;
+
+    document.getElementById("allCount").textContent = active;
+    document.getElementById("pinnedCount").textContent = pinned;
+    document.getElementById("archiveCount").textContent = archive;
+    document.getElementById("trashCount").textContent = trash;
+}
+
+
+/* =========================================================
+   RENDER NOTE LIST
+   ========================================================= */
+
+function renderNotes(){
+    const container =
+        document.getElementById("notesList");
+
+    container.innerHTML = "";
+
+    const notes = getVisibleNotes();
+
+    if(
+        state.currentNoteId &&
+        !notes.some(n => n.id === state.currentNoteId)
+    ){
+        state.currentNoteId =
+            notes.length ? notes[0].id : null;
+    }
+
+    if(!notes.length){
+        container.innerHTML = `
+            <div class="empty-list">
+                ${
+                    state.currentView === "trash"
+                        ? "Trash is empty."
+                        : state.currentView === "archive"
+                        ? "No archived notes."
+                        : "No notes here yet."
+                }
+            </div>
+        `;
+        return;
+    }
+
+    notes.forEach(note=>{
+
+        const card =
+            document.createElement("div");
+
+        card.className =
+            "note-card" +
+            (
+                note.id === state.currentNoteId
+                    ? " active"
+                    : ""
+            );
+
+        card.dataset.id = note.id;
+
+        const preview = textPreview(note.content);
+
+        card.innerHTML = `
+            <div class="note-title">
+                ${escapeHTML(note.title || "Untitled Note")}
+            </div>
+
+            <div class="note-preview">
+                ${escapeHTML(preview)}
+            </div>
+
+            <div class="note-meta">
+                ${
+                    note.pinned
+                        ? `
+                        <span class="note-pin">
+                            <svg viewBox="0 0 24 24"
+                                 style="width:11px;height:11px">
+                                <path d="m8 4 8 0 1 7 3 3H4l3-3z"/>
+                                <path d="M12 14v6"/>
+                            </svg>
+                        </span>
+                        `
+                        : ""
+                }
+
+                <span>${formatDate(note.updatedAt)}</span>
+            </div>
+        `;
+
+        card.addEventListener("click",()=>{
+            selectNote(note.id);
+        });
+
+        card.addEventListener("contextmenu",event=>{
+            event.preventDefault();
+
+            showNoteContextMenu(
+                event.clientX,
+                event.clientY,
+                note.id
+            );
+        });
+
+        container.appendChild(card);
+    });
+}
+
+
+/* =========================================================
+   RENDER EDITOR
+   ========================================================= */
+
+function renderEditor(){
+    const note = getCurrentNote();
+
+    const title =
+        document.getElementById("titleInput");
+
+    const content =
+        document.getElementById("content");
+
+    const pin =
+        document.getElementById("pinBtn");
+
+    const archive =
+        document.getElementById("archiveBtn");
+
+    if(!note){
+        title.value = "";
+        content.innerHTML = "";
+
+        title.disabled = true;
+        content.contentEditable = "false";
+
+        pin.style.opacity = ".45";
+        archive.style.opacity = ".45";
+
+        updateCountsText();
+
+        return;
+    }
+
+    title.disabled = false;
+    content.contentEditable = "true";
+
+    title.value = note.title;
+    content.innerHTML = sanitizeHTML(note.content);
+
+    pin.style.opacity = "1";
+    archive.style.opacity = "1";
+
+    pin.classList.toggle("active",note.pinned);
+
+    updateCountsText();
+}
+
+function updateCountsText(){
+    const content =
+        document.getElementById("content");
+
+    const text = stripHTML(content.innerHTML);
+
+    document.getElementById("wordCount").textContent =
+        `${countWords(text)} words`;
+
+    document.getElementById("charCount").textContent =
+        `${text.length} characters`;
+}
+
+
+/* =========================================================
+   SANITIZATION
+   ========================================================= */
+
+function sanitizeHTML(html){
+    if(!html) return "";
+
+    const parser = new DOMParser();
+
+    const doc =
+        parser.parseFromString(
+            html,
+            "text/html"
+        );
+
+    const forbidden = [
+        "script",
+        "iframe",
+        "object",
+        "embed",
+        "form",
+        "base",
+        "link"
+    ];
+
+    forbidden.forEach(tag=>{
+        doc.querySelectorAll(tag).forEach(el=>el.remove());
+    });
+
+    doc.querySelectorAll("*").forEach(el=>{
+        [...el.attributes].forEach(attr=>{
+            const name = attr.name.toLowerCase();
+            const value = attr.value.toLowerCase();
+
+            if(
+                name.startsWith("on") ||
+                value.startsWith("javascript:")
+            ){
+                el.removeAttribute(attr.name);
+            }
+        });
+    });
+
+    return doc.body.innerHTML;
+}
+
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+function exec(command,value=null){
+    document.getElementById("content").focus();
+
+    try{
+        document.execCommand(
+            command,
+            false,
+            value
+        );
+    }catch(error){
+        console.error(error);
+    }
+
+    updateCurrentNote();
+}
+
+function insertHTML(html){
+    document.getElementById("content").focus();
+
+    document.execCommand(
+        "insertHTML",
+        false,
+        html
+    );
+
+    updateCurrentNote();
+}
+
+document.querySelectorAll(
+    "[data-command]"
+).forEach(button=>{
+    button.addEventListener("click",()=>{
+        exec(button.dataset.command);
+    });
+});
+
+document.getElementById("formatSelect")
+.addEventListener("change",event=>{
+    const value = event.target.value;
+
+    document.getElementById("content").focus();
+
+    document.execCommand(
+        "formatBlock",
+        false,
+        value
+    );
+
+    updateCurrentNote();
+});
+
+document.getElementById("checklistBtn")
+.addEventListener("click",()=>{
+    insertHTML(`
+        <div>
+            <label style="display:block">
+                <input type="checkbox">
+                <span>Task</span>
+            </label>
+        </div>
+    `);
+});
+
+document.getElementById("quoteBtn")
+.addEventListener("click",()=>{
+    exec("formatBlock","blockquote");
+});
+
+document.getElementById("codeBtn")
+.addEventListener("click",()=>{
+    insertHTML("<pre><code>Code</code></pre>");
+});
+
+document.getElementById("linkBtn")
+.addEventListener("click",()=>{
+    const url = prompt(
+        "Enter the URL:"
+    );
+
+    if(!url) return;
+
+    exec("createLink",url);
+});
+
+document.getElementById("undoBtn")
+.addEventListener("click",()=>{
+    exec("undo");
+});
+
+document.getElementById("redoBtn")
+.addEventListener("click",()=>{
+    exec("redo");
+});
+
+
+/* =========================================================
+   EDITOR EVENTS
+   ========================================================= */
+
+document.getElementById("titleInput")
+.addEventListener("input",()=>{
+    updateCurrentNote();
+});
+
+document.getElementById("content")
+.addEventListener("input",()=>{
+    updateCurrentNote();
+    updateCountsText();
+});
+
+document.getElementById("content")
+.addEventListener("keydown",event=>{
+
+    if(event.ctrlKey && event.key.toLowerCase() === "s"){
+        event.preventDefault();
+        saveCurrentAsAnotes();
+    }
+
+    if(event.ctrlKey && event.key.toLowerCase() === "b"){
+        event.preventDefault();
+        exec("bold");
+    }
+
+    if(event.ctrlKey && event.key.toLowerCase() === "i"){
+        event.preventDefault();
+        exec("italic");
+    }
+
+    if(event.ctrlKey && event.key.toLowerCase() === "u"){
+        event.preventDefault();
+        exec("underline");
+    }
+});
+
+
+/* =========================================================
+   TOP ACTIONS
+   ========================================================= */
+
+document.getElementById("newNoteBtn")
+.addEventListener("click",createNewNote);
+
+document.getElementById("newFolderBtn")
+.addEventListener("click",createNewFolder);
+
+document.getElementById("pinBtn")
+.addEventListener("click",togglePin);
+
+document.getElementById("archiveBtn")
+.addEventListener("click",toggleArchive);
+
+document.getElementById("deleteBtn")
+.addEventListener("click",deleteCurrentNote);
+
+document.getElementById("searchInput")
+.addEventListener("input",event=>{
+    state.search = event.target.value;
+    renderNotes();
+});
+
+document.getElementById("sortBtn")
+.addEventListener("click",()=>{
+    if(state.sort === "updated"){
+        state.sort = "created";
+    }else if(state.sort === "created"){
+        state.sort = "title";
+    }else{
+        state.sort = "updated";
+    }
+
+    renderNotes();
+});
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+document.querySelectorAll(".nav-item")
+.forEach(item=>{
+    item.addEventListener("click",()=>{
+        state.currentView = item.dataset.view;
+        state.currentFolderId = null;
+        state.currentNoteId = null;
+
+        renderAll();
+    });
+});
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+function openModal(
+    title,
+    label,
+    confirmText,
+    mode,
+    data=null
+){
+    modalMode = mode;
+    modalData = data;
+
+    document.getElementById("modalTitle").textContent =
+        title;
+
+    document.getElementById("modalLabel").textContent =
+        label;
+
+    document.getElementById("modalConfirm").textContent =
+        confirmText;
+
+    const input =
+        document.getElementById("modalInput");
+
+    input.value =
+        data?.name ||
+        data?.title ||
+        "";
+
+    document
+        .getElementById("modalBackdrop")
+        .classList.add("open");
+
+    setTimeout(()=>{
+        input.focus();
+        input.select();
+    },20);
+}
+
+function closeModal(){
+    document
+        .getElementById("modalBackdrop")
+        .classList.remove("open");
+
+    modalMode = null;
+    modalData = null;
+}
+
+document.getElementById("modalClose")
+.addEventListener("click",closeModal);
+
+document.getElementById("modalCancel")
+.addEventListener("click",closeModal);
+
+document.getElementById("modalBackdrop")
+.addEventListener("click",event=>{
+    if(event.target.id === "modalBackdrop"){
+        closeModal();
+    }
+});
+
+document.getElementById("modalInput")
+.addEventListener("keydown",event=>{
+    if(event.key === "Enter"){
+        document.getElementById("modalConfirm").click();
+    }
+
+    if(event.key === "Escape"){
+        closeModal();
+    }
+});
+
+document.getElementById("modalConfirm")
+.addEventListener("click",()=>{
+
+    const value =
+        document.getElementById("modalInput")
+        .value
+        .trim();
+
+    if(!value) return;
+
+    if(modalMode === "folder"){
+        createFolderConfirmed(value);
+    }
+
+    else if(modalMode === "rename-folder"){
+        modalData.name = value;
+        saveWorkspace();
+        renderAll();
+    }
+
+    else if(modalMode === "rename-note"){
+        modalData.title = value;
+        modalData.updatedAt = now();
+        saveWorkspace();
+        renderAll();
+    }
+
+    closeModal();
+});
+
+
+/* =========================================================
+   NOTE CONTEXT MENU
+   ========================================================= */
+
+function showNoteContextMenu(x,y,id){
+    contextNoteId = id;
+
+    const menu =
+        document.getElementById("contextMenu");
+
+    menu.style.left = `${Math.min(x,window.innerWidth-180)}px`;
+    menu.style.top = `${Math.min(y,window.innerHeight-220)}px`;
+
+    menu.classList.add("open");
+
+    menu.querySelector(
+        '[data-action="archive"]'
+    ).textContent =
+        state.notes.find(n=>n.id===id)?.archived
+            ? "Unarchive"
+            : "Archive";
+}
+
+function showFolderContextMenu(x,y,id){
+
+    contextNoteId = null;
+
+    const menu =
+        document.getElementById("contextMenu");
+
+    menu.style.left = `${Math.min(x,window.innerWidth-180)}px`;
+    menu.style.top = `${Math.min(y,window.innerHeight-150)}px`;
+
+    menu.classList.add("open");
+
+    menu.querySelector(
+        '[data-action="rename"]'
+    ).textContent = "Rename";
+
+    menu.querySelector(
+        '[data-action="pin"]'
+    ).style.display = "none";
+
+    menu.querySelector(
+        '[data-action="archive"]'
+    ).style.display = "none";
+
+    menu.querySelector(
+        '[data-action="move"]'
+    ).style.display = "none";
+
+    menu.querySelector(
+        '[data-action="delete"]'
+    ).textContent = "Delete Folder";
+
+    menu.dataset.folderId = id;
+}
+
+function hideContextMenu(){
+    document
+        .getElementById("contextMenu")
+        .classList.remove("open");
+
+    const menu =
+        document.getElementById("contextMenu");
+
+    menu.querySelector(
+        '[data-action="pin"]'
+    ).style.display = "";
+
+    menu.querySelector(
+        '[data-action="archive"]'
+    ).style.display = "";
+
+    menu.querySelector(
+        '[data-action="move"]'
+    ).style.display = "";
+
+    menu.querySelector(
+        '[data-action="delete"]'
+    ).textContent = "Move to Trash";
+
+    delete menu.dataset.folderId;
+}
+
+document.addEventListener("click",event=>{
+    const menu =
+        document.getElementById("contextMenu");
+
+    if(
+        !menu.contains(event.target)
+    ){
+        hideContextMenu();
+    }
+});
+
+document.querySelectorAll(".context-item")
+.forEach(item=>{
+    item.addEventListener("click",()=>{
+
+        const action =
+            item.dataset.action;
+
+        const menu =
+            document.getElementById("contextMenu");
+
+        const folderId =
+            menu.dataset.folderId;
+
+        if(folderId){
+
+            if(action === "rename"){
+                renameFolder(folderId);
+            }
+
+            if(action === "delete"){
+                deleteFolder(folderId);
+            }
+
+            hideContextMenu();
+            return;
+        }
+
+        const note =
+            state.notes.find(
+                n=>n.id === contextNoteId
+            );
+
+        if(!note){
+            hideContextMenu();
+            return;
+        }
+
+        if(action === "rename"){
+            openModal(
+                "Rename Note",
+                "Note title",
+                "Save",
+                "rename-note",
+                note
+            );
+        }
+
+        if(action === "pin"){
+            note.pinned = !note.pinned;
+            note.updatedAt = now();
+            saveWorkspace();
+            renderAll();
+        }
+
+        if(action === "archive"){
+            note.archived = !note.archived;
+            note.updatedAt = now();
+            saveWorkspace();
+            renderAll();
+        }
+
+        if(action === "move"){
+            moveNoteToFolder(note.id);
+        }
+
+        if(action === "delete"){
+            if(note.deleted){
+                permanentlyDelete(note.id);
+            }else{
+                note.deleted = true;
+                note.archived = false;
+                note.pinned = false;
+
+                if(state.currentNoteId === note.id){
+                    state.currentNoteId = null;
+                }
+
+                saveWorkspace();
+                renderAll();
+            }
+        }
+
+        hideContextMenu();
+    });
+});
+
+
+/* =========================================================
+   ANOTES FORMAT
+   =========================================================
+
+   Custom format:
+
+   ANOTES
+   VERSION:1
+   TYPE:NOTE
+   META
+   <base64 JSON>
+   END_META
+   CONTENT
+   <base64 HTML>
+   END_CONTENT
+
+   Workspace:
+
+   ANOTES
+   VERSION:1
+   TYPE:WORKSPACE
+   META
+   <base64 JSON>
+   END_META
+   DATA
+   <base64 JSON>
+   END_DATA
+*/
+
+function buildNoteFile(note){
+
+    const meta = {
+        id:note.id,
+        title:note.title,
+        folderId:note.folderId,
+        pinned:!!note.pinned,
+        archived:!!note.archived,
+        deleted:!!note.deleted,
+        createdAt:note.createdAt,
+        updatedAt:note.updatedAt
+    };
+
+    return [
+        "ANOTES",
+        "VERSION:1",
+        "TYPE:NOTE",
+        "ENCODING:BASE64",
+        "META",
+        encode64(JSON.stringify(meta)),
+        "END_META",
+        "CONTENT",
+        encode64(
+            sanitizeHTML(note.content || "")
+        ),
+        "END_CONTENT",
+        "END_ANOTES"
+    ].join("\n");
+}
+
+function buildWorkspaceFile(){
+
+    const meta = {
+        app:"A-Notes",
+        format:"ANOTES",
+        version:1,
+        type:"workspace",
+        exportedAt:now()
+    };
+
+    const data = {
+        folders:state.folders,
+        notes:state.notes
+    };
+
+    return [
+        "ANOTES",
+        "VERSION:1",
+        "TYPE:WORKSPACE",
+        "ENCODING:BASE64",
+        "META",
+        encode64(JSON.stringify(meta)),
+        "END_META",
+        "DATA",
+        encode64(JSON.stringify(data)),
+        "END_DATA",
+        "END_ANOTES"
+    ].join("\n");
+}
+
+
+/* =========================================================
+   ANOTES PARSER
+   ========================================================= */
+
+function parseAnotes(text){
+
+    const lines =
+        text.replace(/\r\n/g,"\n").split("\n");
+
+    if(lines[0] !== "ANOTES"){
+        throw new Error(
+            "This is not a valid .anotes file."
+        );
+    }
+
+    const version =
+        lines.find(line =>
+            line.startsWith("VERSION:")
+        );
+
+    if(!version){
+        throw new Error(
+            "Missing ANOTES version."
+        );
+    }
+
+    const versionNumber =
+        Number(version.split(":")[1]);
+
+    if(versionNumber !== 1){
+        throw new Error(
+            `Unsupported ANOTES version: ${versionNumber}`
+        );
+    }
+
+    const typeLine =
+        lines.find(line =>
+            line.startsWith("TYPE:")
+        );
+
+    if(!typeLine){
+        throw new Error(
+            "Missing ANOTES file type."
+        );
+    }
+
+    const type =
+        typeLine.split(":")[1];
+
+    if(type === "NOTE"){
+        return parseNoteFile(lines);
+    }
+
+    if(type === "WORKSPACE"){
+        return parseWorkspaceFile(lines);
+    }
+
+    throw new Error(
+        "Unknown ANOTES file type."
+    );
+}
+
+function getSection(lines,start,end){
+
+    const startIndex =
+        lines.indexOf(start);
+
+    const endIndex =
+        lines.indexOf(end);
+
+    if(
+        startIndex === -1 ||
+        endIndex === -1 ||
+        endIndex <= startIndex
+    ){
+        throw new Error(
+            `Invalid ANOTES section: ${start}`
+        );
+    }
+
+    return lines
+        .slice(startIndex + 1,endIndex)
+        .join("");
+}
+
+function parseNoteFile(lines){
+
+    const metaRaw =
+        getSection(
+            lines,
+            "META",
+            "END_META"
+        );
+
+    const contentRaw =
+        getSection(
+            lines,
+            "CONTENT",
+            "END_CONTENT"
+        );
+
+    let meta;
+
+    try{
+        meta =
+            JSON.parse(
+                decode64(metaRaw)
+            );
+    }catch{
+        throw new Error(
+            "The note metadata is corrupted."
+        );
+    }
+
+    let content;
+
+    try{
+        content =
+            decode64(contentRaw);
+    }catch{
+        throw new Error(
+            "The note content is corrupted."
+        );
+    }
+
+    return {
+        type:"note",
+        note:{
+            id:String(meta.id || uid("note")),
+            title:String(meta.title || "Untitled Note"),
+            folderId:meta.folderId || null,
+            pinned:!!meta.pinned,
+            archived:!!meta.archived,
+            deleted:!!meta.deleted,
+            createdAt:meta.createdAt || now(),
+            updatedAt:meta.updatedAt || now(),
+            content:sanitizeHTML(content)
+        }
+    };
+}
+
+function parseWorkspaceFile(lines){
+
+    const dataRaw =
+        getSection(
+            lines,
+            "DATA",
+            "END_DATA"
+        );
+
+    let data;
+
+    try{
+        data =
+            JSON.parse(
+                decode64(dataRaw)
+            );
+    }catch{
+        throw new Error(
+            "The workspace data is corrupted."
+        );
+    }
+
+    return {
+        type:"workspace",
+        folders:Array.isArray(data.folders)
+            ? data.folders
+            : [],
+        notes:Array.isArray(data.notes)
+            ? data.notes
+            : []
+    };
+}
+
+
+/* =========================================================
+   IMPORT
+   ========================================================= */
+
+async function importAnotesFile(file){
+
+    let originalNotes = null;
+    let originalFolders = null;
+    let originalCurrentNoteId = null;
+
+    try{
+
+        const text =
+            await file.text();
+
+        originalNotes = state.notes;
+        originalFolders = state.folders;
+        originalCurrentNoteId = state.currentNoteId;
+
+        const parsed =
+            parseAnotes(text);
+
+        const importedNotes = [...state.notes];
+        const importedFolders = [...state.folders];
+        let importedCurrentNoteId = state.currentNoteId;
+
+        if(parsed.type === "note"){
+
+            const imported = parsed.note;
+            const id = importedNotes.some(n => n.id === imported.id)
+                ? uid("note")
+                : imported.id;
+            const folderId = imported.folderId &&
+                importedFolders.some(f => f.id === imported.folderId)
+                    ? imported.folderId
+                    : null;
+
+            importedNotes.unshift({
+                ...imported,
+                id,
+                folderId,
+                title: String(imported.title || "Untitled Note"),
+                content: sanitizeHTML(String(imported.content || ""))
+            });
+            importedCurrentNoteId = id;
+
+        }else{
+
+            const folderMap =
+                new Map();
+
+            parsed.folders.forEach(folder=>{
+
+                if(!folder || typeof folder !== "object"){
+                    throw new Error("The workspace contains an invalid folder.");
+                }
+
+                const originalId = String(folder.id || uid("folder"));
+                let id = originalId;
+
+                if(
+                    importedFolders.some(
+                        f=>f.id === id
+                    ) ||
+                    folderMap.has(originalId)
+                ){
+                    id = uid("folder");
+                }
+
+                folderMap.set(
+                    originalId,
+                    id
+                );
+
+                importedFolders.push({
+                    ...folder,
+                    id,
+                    name: String(folder.name || "Untitled Folder")
+                });
+            });
+
+            parsed.notes.forEach(note=>{
+
+                if(!note || typeof note !== "object"){
+                    throw new Error("The workspace contains an invalid note.");
+                }
+
+                const originalId = String(note.id || uid("note"));
+                let id = originalId;
+
+                if(
+                    importedNotes.some(
+                        n=>n.id === id
+                    )
+                ){
+                    id = uid("note");
+                }
+
+                importedNotes.push({
+                    ...note,
+                    id,
+                    title: String(note.title || "Untitled Note"),
+                    folderId:
+                        note.folderId &&
+                        folderMap.has(String(note.folderId))
+                            ? folderMap.get(String(note.folderId))
+                            : null,
+                    content:sanitizeHTML(
+                        String(note.content || "")
+                    )
+                });
+            });
+
+            if(!importedCurrentNoteId){
+                const first = importedNotes[0];
+
+                importedCurrentNoteId =
+                    first?.id || null;
+            }
+        }
+
+        state.notes = importedNotes;
+        state.folders = importedFolders;
+        state.currentNoteId = importedCurrentNoteId;
+
+        saveWorkspace();
+        renderAll();
+
+        alert(
+            parsed.type === "note"
+                ? "Note imported successfully."
+                : "Workspace imported successfully."
+        );
+
+    }catch(error){
+
+        if(originalNotes){
+            state.notes = originalNotes;
+            state.folders = originalFolders;
+            state.currentNoteId = originalCurrentNoteId;
+            saveWorkspace();
+            try{
+                renderAll();
+            }catch(renderError){
+                console.error("Could not restore the notes view after a failed import:",renderError);
+            }
+        }
+
+        console.error(error);
+
+        alert(
+            "Could not import this .anotes file.\n\n" +
+            (error instanceof Error ? error.message : String(error))
+        );
+    }
+}
+
+document.getElementById("fileInput")
+.addEventListener("change",event=>{
+
+    const file =
+        event.target.files?.[0];
+
+    if(file){
+        importAnotesFile(file);
+    }
+
+    event.target.value = "";
+});
+
+
+/* =========================================================
+   OPEN FILE
+   ========================================================= */
+
+async function openAnotes(){
+
+    if("showOpenFilePicker" in window){
+
+        try{
+
+            const handles =
+                await window.showOpenFilePicker({
+                    multiple:false,
+                    types:[
+                        {
+                            description:"A-Notes file",
+                            accept:{
+                                "application/x-anotes":[
+                                    ".anotes"
+                                ]
+                            }
+                        }
+                    ]
+                });
+
+            if(!handles.length) return;
+
+            const file =
+                await handles[0].getFile();
+
+            await importAnotesFile(file);
+
+            return;
+
+        }catch(error){
+
+            if(error.name === "AbortError"){
+                return;
+            }
+
+            console.warn(
+                "File System Access API failed:",
+                error
+            );
+        }
+    }
+
+    document.getElementById("fileInput").click();
+}
+
+document.getElementById("openBtn")
+.addEventListener("click",openAnotes);
+
+
+/* =========================================================
+   DOWNLOAD
+   ========================================================= */
+
+function downloadText(
+    text,
+    filename
+){
+    const blob =
+        new Blob(
+            [text],
+            {
+                type:"application/x-anotes"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(()=>{
+        URL.revokeObjectURL(url);
+    },1000);
+}
+
+
+/* =========================================================
+   SAVE CURRENT NOTE
+   ========================================================= */
+
+async function saveCurrentAsAnotes(){
+
+    const note = getCurrentNote();
+
+    if(!note){
+        alert("Create or select a note first.");
+        return;
+    }
+
+    updateCurrentNote();
+
+    const content =
+        buildNoteFile(note);
+
+    const filename =
+        sanitizeFileName(note.title) +
+        ".anotes";
+
+    if("showSaveFilePicker" in window){
+
+        try{
+
+            const handle =
+                await window.showSaveFilePicker({
+                    suggestedName:filename,
+                    types:[
+                        {
+                            description:"A-Notes file",
+                            accept:{
+                                "application/x-anotes":[
+                                    ".anotes"
+                                ]
+                            }
+                        }
+                    ]
+                });
+
+            const writable =
+                await handle.createWritable();
+
+            await writable.write(content);
+            await writable.close();
+
+            updateSaveStatus(
+                true
+            );
+
+            return;
+
+        }catch(error){
+
+            if(error.name === "AbortError"){
+                return;
+            }
+
+            console.warn(
+                "Save picker failed:",
+                error
+            );
+        }
+    }
+
+    downloadText(
+        content,
+        filename
+    );
+
+    updateSaveStatus(true);
+}
+
+document.getElementById("saveBtn")
+.addEventListener(
+    "click",
+    saveCurrentAsAnotes
+);
+
+document.getElementById("exportBtn")
+.addEventListener(
+    "click",
+    saveCurrentAsAnotes
+);
+
+document.getElementById("workspaceBtn")
+.addEventListener(
+    "click",
+    ()=>window.location.href = "index.html"
+);
+
+
+/* =========================================================
+   WORKSPACE EXPORT
+   ========================================================= */
+
+function exportWorkspace(){
+
+    const content =
+        buildWorkspaceFile();
+
+    downloadText(
+        content,
+        "A-Notes-Workspace.anotes"
+    );
+}
+
+
+/* =========================================================
+   DRAG & DROP
+   ========================================================= */
+
+const dropOverlay =
+    document.getElementById("dropOverlay");
+
+let dragCounter = 0;
+
+document.addEventListener("dragenter",event=>{
+    event.preventDefault();
+
+    dragCounter++;
+
+    dropOverlay.classList.add("show");
+});
+
+document.addEventListener("dragover",event=>{
+    event.preventDefault();
+});
+
+document.addEventListener("dragleave",event=>{
+    event.preventDefault();
+
+    dragCounter--;
+
+    if(dragCounter <= 0){
+        dropOverlay.classList.remove("show");
+        dragCounter = 0;
+    }
+});
+
+document.addEventListener("drop",event=>{
+
+    event.preventDefault();
+
+    dragCounter = 0;
+    dropOverlay.classList.remove("show");
+
+    const file =
+        [...event.dataTransfer.files]
+        .find(
+            f =>
+                f.name.toLowerCase().endsWith(".anotes")
+        );
+
+    if(file){
+        importAnotesFile(file);
+    }else{
+        alert(
+            "Please drop an .anotes file."
+        );
+    }
+});
+
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+   ========================================================= */
+
+document.addEventListener("keydown",event=>{
+
+    if(
+        event.ctrlKey &&
+        event.key.toLowerCase() === "n"
+    ){
+        event.preventDefault();
+        createNewNote();
+    }
+
+    if(
+        event.ctrlKey &&
+        event.key.toLowerCase() === "o"
+    ){
+        event.preventDefault();
+        openAnotes();
+    }
+
+    if(
+        event.ctrlKey &&
+        event.key.toLowerCase() === "s"
+    ){
+        event.preventDefault();
+        saveCurrentAsAnotes();
+    }
+
+    if(
+        event.ctrlKey &&
+        event.key.toLowerCase() === "f"
+    ){
+        const search =
+            document.getElementById("searchInput");
+
+        if(document.activeElement !== search){
+            event.preventDefault();
+            search.focus();
+        }
+    }
+});
+
+
+/* =========================================================
+   GLOBAL SHORTCUTS
+   ========================================================= */
+
+window.addEventListener("beforeunload",()=>{
+    saveWorkspace();
+});
+
+
+/* =========================================================
+   RENDER EVERYTHING
+   ========================================================= */
+
+function renderAll(){
+    renderSidebar();
+    updateCounts();
+    renderNotes();
+    renderEditor();
+}
+
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
+function initialize(){
+
+    loadWorkspace();
+
+    /*
+       Do not create fake notes.
+       If the workspace is completely empty,
+       the user starts with a clean workspace.
+    */
+
+    const first =
+        getVisibleNotes()[0];
+
+    if(
+        !state.currentNoteId &&
+        first
+    ){
+        state.currentNoteId = first.id;
+    }
+
+    renderAll();
+}
+
+window.AZpaceAuth.ready.then(session => {
+    if (session) initialize();
+});
+
+</script>
+
+</body>
+</html>
