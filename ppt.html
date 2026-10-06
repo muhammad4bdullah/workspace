@@ -765,6 +765,10 @@ button{
     width:100px;
 }
 
+.mobile-inspector-btn{
+    display:none;
+}
+
 /* =========================================================
    MODALS
 ========================================================= */
@@ -980,6 +984,18 @@ body.dark .inspector-action:hover{
     background:#303744;
 }
 
+@media(prefers-reduced-motion:reduce){
+    *,
+    *::before,
+    *::after{
+        scroll-behavior:auto!important;
+        animation-duration:.01ms!important;
+        animation-delay:0ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.01ms!important;
+    }
+}
+
 /* =========================================================
    PRINT
 ========================================================= */
@@ -1023,18 +1039,211 @@ body.dark .inspector-action:hover{
 }
 
 @media(max-width:720px){
-    .left-panel{
-        display:none;
+        .topbar{
+            gap:5px;
+            padding:0 7px;
+        }
+
+        .brand{
+            min-width:29px;
+        }
+
+        .brand-name{
+            display:none;
+        }
+
+        .file-name{
+            min-width:0;
+            width:1px;
+            flex:1;
+        }
+
+        .top-actions{
+            gap:1px;
+        }
+
+        .top-actions > button:first-child,
+        #saveBtn,
+        #fullscreenBtn{
+            display:none;
+        }
+
+        .top-actions > button:first-child{
+            display:inline-flex;
+            width:29px;
+            min-width:29px;
+            padding:0;
+            font-size:0;
+        }
+
+        .top-actions > button:first-child::after{
+            content:"←";
+            font-size:17px;
+        }
+
+        .top-actions .icon-btn{
+            min-width:29px;
+            padding:0 5px;
+        }
+
+        .primary-btn{
+            padding:7px 9px;
+        }
+
+        .menubar{
+            overflow-x:auto;
+            overflow-y:hidden;
+            white-space:nowrap;
+            padding:0 6px;
+        }
+
+        .menubar .dropdown{
+            position:fixed;
+            top:80px;
+            left:6px;
+            max-height:calc(100dvh - 100px);
+            overflow:auto;
+        }
+
+        .toolbar{
+            min-height:41px;
+            padding:4px 6px;
+        }
+
+        .font-select{
+            width:110px;
+        }
+
+        .workspace{
+            flex-direction:column;
+        }
+
+        .left-panel{
+            width:100%;
+            height:100px;
+            border-right:0;
+            border-bottom:1px solid var(--border);
+        }
+
+        .left-panel .panel-header{
+            height:34px;
+            min-height:34px;
+            padding:0 8px;
+        }
+
+        .left-panel .slide-search{
+            display:none;
+        }
+
+        .left-panel .thumbnails{
+            display:flex;
+            align-items:flex-start;
+            gap:8px;
+            overflow-x:auto;
+            overflow-y:hidden;
+            padding:7px 10px;
+        }
+
+        .left-panel .thumbnail{
+            flex:0 0 112px;
+            margin:0;
+        }
+
+        .left-panel .thumbnail-number{
+            left:0;
+            top:0;
+            width:auto;
+            padding:2px 4px;
+            border-radius:0 0 4px 0;
+            transform:none;
+            background:rgba(15,23,42,.7);
+            color:#fff;
+            z-index:1;
+        }
+
+        .left-panel .thumbnail-title{
+            margin-top:2px;
+            font-size:10px;
+        }
+
+        .right-panel{
+            display:none;
+        }
+
+        .right-panel.mobile-open{
+            display:flex;
+            position:fixed;
+            z-index:200;
+            left:8px;
+            right:8px;
+            bottom:35px;
+            width:auto;
+            height:min(58vh,430px);
+            border:1px solid var(--border);
+            border-radius:10px;
+            box-shadow:0 12px 40px rgba(0,0,0,.25);
+        }
+
+        .mobile-inspector-btn{
+            display:inline-flex!important;
+        }
+
+        .notes-panel{
+            height:86px;
+        }
+
+        .notes-header{
+            height:28px;
+        }
+
+        .canvas-scroll{
+            padding:12px;
+        }
+
+        .statusbar{
+            height:25px;
+            padding:0 7px;
+            gap:8px;
+        }
+
+        #statusSelected{
+            display:none;
+        }
+
+        .zoom-slider{
+            width:72px;
+        }
+
+        .modal{
+            width:calc(100vw - 20px);
+            max-height:calc(100dvh - 24px);
+        }
+
+        .modal-body{
+            padding:12px;
+        }
+
+        .presentation-controls{
+            bottom:12px;
+            opacity:1;
+        }
     }
 
-    .right-panel{
-        display:none;
+    @media(max-width:390px){
+        .toolbar-group{
+            padding-right:4px;
+            margin-right:1px;
+        }
+
+        .font-select{
+            width:96px;
+        }
+
+        .mobile-inspector-btn{
+            padding:0 6px;
+        }
     }
 
-    .canvas-scroll{
-        padding:20px;
-    }
-}
 </style>
 </head>
 
@@ -1523,6 +1732,14 @@ body.dark .inspector-action:hover{
                 Grid
             </button>
 
+            <button
+                class="toolbar-btn mobile-inspector-btn"
+                id="mobileInspectorBtn"
+                aria-expanded="false"
+            >
+                Inspect
+            </button>
+
             <button class="toolbar-btn" id="zoomOutBtn">
                 −
             </button>
@@ -1786,6 +2003,8 @@ let state = {
 
     theme: "light",
 
+    designTheme: null,
+
     slides: [],
 
     activeSlide: 0,
@@ -1796,6 +2015,99 @@ let state = {
 
     showGuides: true
 };
+
+const PRESENTATION_THEMES=[
+    {id:"studio",name:"Studio",background:"#ffffff",accent:"#2563eb"},
+    {id:"ocean",name:"Ocean",background:"#f0f7ff",accent:"#087eaa"},
+    {id:"sage",name:"Sage",background:"#f1f7f2",accent:"#3b8064"},
+    {id:"sunset",name:"Sunset",background:"#fff6ef",accent:"#e36f4b"},
+    {id:"lavender",name:"Lavender",background:"#f6f3ff",accent:"#765ac4"},
+    {id:"graphite",name:"Graphite",background:"#f1f3f5",accent:"#475569"}
+];
+
+const PRESENTATION_ANIMATIONS=[
+    {id:"fade",name:"Fade",from:"opacity:0"},
+    {id:"rise",name:"Rise",from:"opacity:0;translate:0 28px"},
+    {id:"zoom",name:"Zoom",from:"opacity:0;scale:.72"},
+    {id:"drift-left",name:"Drift in from left",from:"opacity:0;translate:-48px 0"},
+    {id:"drift-right",name:"Drift in from right",from:"opacity:0;translate:48px 0"},
+    {id:"drop",name:"Drop in",from:"opacity:0;translate:0 -42px"},
+    {id:"pop",name:"Pop",from:"opacity:0;scale:.45"},
+    {id:"flip-x",name:"Flip horizontally",from:"opacity:0;rotate:y 76deg"},
+    {id:"flip-y",name:"Flip vertically",from:"opacity:0;rotate:x 76deg"},
+    {id:"rotate-in",name:"Rotate in",from:"opacity:0;rotate:-22deg;scale:.86"},
+    {id:"blur-in",name:"Blur in",from:"opacity:0;filter:blur(14px)"},
+    {id:"wipe-left",name:"Wipe from left",from:"clip-path:inset(0 100% 0 0)"},
+    {id:"wipe-right",name:"Wipe from right",from:"clip-path:inset(0 0 0 100%)"},
+    {id:"wipe-up",name:"Wipe from top",from:"clip-path:inset(0 0 100% 0)"},
+    {id:"wipe-down",name:"Wipe from bottom",from:"clip-path:inset(100% 0 0 0)"},
+    {id:"bounce",name:"Bounce in",from:"opacity:0;translate:0 -48px;scale:.92"},
+    {id:"float-up",name:"Float up",from:"opacity:0;translate:0 54px;scale:.96"},
+    {id:"slide-up",name:"Slide up",from:"opacity:0;translate:0 90px"},
+    {id:"slide-down",name:"Slide down",from:"opacity:0;translate:0 -90px"},
+    {id:"focus-in",name:"Focus in",from:"opacity:0;filter:blur(8px);scale:1.12"}
+];
+
+const PRESENTATION_TRANSITIONS=[
+    {id:"fade",name:"Fade",from:"opacity:0"},
+    {id:"push-left",name:"Push left",from:"opacity:0;translate:12% 0"},
+    {id:"push-right",name:"Push right",from:"opacity:0;translate:-12% 0"},
+    {id:"push-up",name:"Push up",from:"opacity:0;translate:0 12%"},
+    {id:"push-down",name:"Push down",from:"opacity:0;translate:0 -12%"},
+    {id:"zoom-in",name:"Zoom in",from:"opacity:0;scale:.78"},
+    {id:"zoom-out",name:"Zoom out",from:"opacity:0;scale:1.22"},
+    {id:"flip-x",name:"Flip horizontal",from:"opacity:0;rotate:y -88deg"},
+    {id:"flip-y",name:"Flip vertical",from:"opacity:0;rotate:x 88deg"},
+    {id:"rotate",name:"Rotate",from:"opacity:0;rotate:-12deg;scale:.92"},
+    {id:"wipe-left",name:"Wipe left",from:"clip-path:inset(0 100% 0 0)"},
+    {id:"wipe-right",name:"Wipe right",from:"clip-path:inset(0 0 0 100%)"},
+    {id:"wipe-up",name:"Wipe up",from:"clip-path:inset(100% 0 0 0)"},
+    {id:"wipe-down",name:"Wipe down",from:"clip-path:inset(0 0 100% 0)"},
+    {id:"circle",name:"Circle reveal",from:"clip-path:circle(0 at 50% 50%)"},
+    {id:"blur",name:"Blur dissolve",from:"opacity:0;filter:blur(24px)"},
+    {id:"split-horizontal",name:"Split horizontal",from:"clip-path:inset(0 50% 0 50%)"},
+    {id:"split-vertical",name:"Split vertical",from:"clip-path:inset(50% 0 50% 0)"},
+    {id:"swivel",name:"Swivel",from:"opacity:0;rotate:y 32deg;translate:8% 0"},
+    {id:"uncover",name:"Uncover",from:"opacity:0;scale:1.08;translate:0 3%"}
+];
+
+function installMotionStyles(){
+
+    const style=document.createElement("style");
+
+    style.id="presentation-motion-styles";
+    style.textContent=[
+        ...PRESENTATION_ANIMATIONS.map(
+            effect=>`
+                .presentation-element[data-animation="${effect.id}"]{
+                    animation:object-${effect.id} 680ms cubic-bezier(.2,.72,.24,1) both;
+                    animation-delay:var(--animation-delay,0ms);
+                    transform-origin:center;
+                }
+                @keyframes object-${effect.id}{
+                    from{${effect.from}}
+                    to{opacity:var(--presentation-opacity,1)}
+                }
+            `
+        ),
+        ...PRESENTATION_TRANSITIONS.map(
+            effect=>`
+                .presentation-slide.transition-${effect.id}{
+                    animation:slide-${effect.id} 560ms cubic-bezier(.2,.72,.24,1) both;
+                    transform-origin:center;
+                }
+                @keyframes slide-${effect.id}{
+                    from{${effect.from}}
+                    to{opacity:1;translate:0 0;scale:1;rotate:none;filter:blur(0);clip-path:inset(0 0 0 0)}
+                }
+            `
+        )
+    ].join("");
+
+    document.head.appendChild(style);
+}
+
+installMotionStyles();
 
 let selectedIds = [];
 
@@ -1833,6 +2145,10 @@ function uid(prefix = "id"){
 
 function createSlide(layout = "title-content"){
 
+    const theme=PRESENTATION_THEMES.find(
+        item=>item.id===state.designTheme
+    );
+
     const slide = {
         id:uid("slide"),
 
@@ -1840,8 +2156,10 @@ function createSlide(layout = "title-content"){
 
         background:{
             type:"solid",
-            color:"#ffffff"
+            color:theme?.background||"#ffffff"
         },
+
+        themeId:theme?.id||null,
 
         notes:"",
 
@@ -1912,6 +2230,10 @@ function createSlide(layout = "title-content"){
                 }
             )
         );
+    }
+
+    if(theme){
+        applySlideThemeToSlide(slide,theme);
     }
 
     return slide;
@@ -2292,6 +2614,14 @@ function load(){
         );
     }
 
+    state.slides.forEach(slide=>{
+        if(slide.transition==="slide"){
+            slide.transition="push-left";
+        }else if(slide.transition==="zoom"){
+            slide.transition="zoom-in";
+        }
+    });
+
     document.getElementById(
         "presentationName"
     ).value = state.name;
@@ -2350,6 +2680,60 @@ function toggleTheme(){
     applyTheme();
 
     save();
+}
+
+function applySlideThemeToSlide(slide,theme){
+
+    slide.themeId=theme.id;
+    slide.background={
+        type:"solid",
+        color:theme.background
+    };
+
+    slide.elements=slide.elements.filter(
+        element=>!element.themeDecoration
+    );
+
+    const accent=createShapeElement(
+        0,
+        0,
+        Math.max(8,state.width*.0125),
+        state.height,
+        "rectangle"
+    );
+
+    accent.fill=theme.accent;
+    accent.stroke=theme.accent;
+    accent.strokeWidth=0;
+    accent.z=0;
+    accent.locked=true;
+    accent.themeDecoration=true;
+    slide.elements.unshift(accent);
+}
+
+
+function applySlideTheme(themeId){
+
+    const theme=PRESENTATION_THEMES.find(
+        item=>item.id===themeId
+    );
+
+    if(!theme){
+        toast("That slide theme is not available");
+        return;
+    }
+
+    pushHistory();
+    state.designTheme=theme.id;
+
+    state.slides.forEach(slide=>{
+        applySlideThemeToSlide(slide,theme);
+    });
+
+    selectedIds=[];
+    renderAll();
+    save();
+    toast(`${theme.name} theme applied`);
 }
 
 
@@ -2671,7 +3055,8 @@ function renderThumbnails(){
 
 function renderSlideStaticHTML(
     slide,
-    thumbnail=false
+    thumbnail=false,
+    presentationMode=false
 ){
 
     const scale =
@@ -2702,13 +3087,15 @@ function renderSlideStaticHTML(
                 (a.z||0)-(b.z||0)
             );
 
-    sorted.forEach(el=>{
+    sorted.forEach((el,index)=>{
 
         html +=
             elementHTML(
                 el,
                 scale,
-                true
+                true,
+                presentationMode,
+                index
             );
     });
 
@@ -2725,7 +3112,9 @@ function renderSlideStaticHTML(
 function elementHTML(
     el,
     scale=1,
-    staticMode=false
+    staticMode=false,
+    presentationMode=false,
+    animationIndex=0
 ){
 
     const left=el.x*scale;
@@ -2739,6 +3128,18 @@ function elementHTML(
     const opacity =
         el.opacity ?? 1;
 
+    const animationName=
+        PRESENTATION_ANIMATIONS.some(
+            effect=>effect.id===el.animation
+        )
+            ? el.animation
+            : "";
+
+    const animationAttributes=
+        presentationMode && animationName
+            ? `class="presentation-element" data-animation="${animationName}"`
+            : "";
+
     const common =
         `
         position:absolute;
@@ -2748,13 +3149,20 @@ function elementHTML(
         height:${height}px;
         transform:${transform};
         opacity:${opacity};
+        ${presentationMode
+            ? `--presentation-opacity:${opacity};`
+            : ""}
         z-index:${el.z||0};
+        ${presentationMode
+            ? `--animation-delay:${Math.min(animationIndex*90,720)}ms;`
+            : ""}
         `;
 
     if(el.type==="text"){
 
         return `
         <div
+            ${animationAttributes}
             style="
                 ${common}
                 padding:${(el.padding||0)*scale}px;
@@ -2779,6 +3187,7 @@ function elementHTML(
 
         return `
         <div
+            ${animationAttributes}
             style="
                 ${common}
                 background:${escapeAttr(el.fill)};
@@ -2795,6 +3204,7 @@ function elementHTML(
         return `
         <img
             src="${escapeAttr(el.src)}"
+            ${animationAttributes}
             style="
                 ${common}
                 object-fit:${escapeAttr(el.objectFit||"fill")};
@@ -2813,6 +3223,7 @@ function elementHTML(
 
         return `
         <svg
+            ${animationAttributes}
             style="${common}"
             viewBox="0 0 ${Math.max(1,el.w)} ${Math.max(1,el.h)}"
             preserveAspectRatio="none"
@@ -2852,6 +3263,7 @@ function elementHTML(
 
         let table=`
         <table
+            ${animationAttributes}
             style="
                 ${common}
                 border-collapse:collapse;
@@ -3025,6 +3437,10 @@ function renderElement(
 
     wrapper.style.zIndex =
         el.z||0;
+
+    if(el.themeDecoration){
+        wrapper.style.pointerEvents="none";
+    }
 
     if(selectedIds.includes(el.id)){
 
@@ -4642,6 +5058,24 @@ function renderElementInspector(
             </div>
 
             <div class="field">
+                <label>Entrance animation</label>
+                <select id="propAnimation">
+                    <option value="none" ${!el.animation||el.animation==="none"?"selected":""}>None</option>
+                    ${PRESENTATION_ANIMATIONS.map(
+                        effect=>`
+                            <option
+                                value="${effect.id}"
+                                ${el.animation===effect.id?"selected":""}
+                            >${effect.name}</option>
+                        `
+                    ).join("")}
+                </select>
+                <div style="margin-top:4px;color:var(--muted);font-size:11px;line-height:1.4">
+                    Plays on this object in Present mode.
+                </div>
+            </div>
+
+            <div class="field">
                 <label>Locked</label>
                 <select id="propLocked">
                     <option value="false" ${!el.locked?"selected":""}>
@@ -5033,6 +5467,13 @@ function bindInspectorInputs(el){
     );
 
     bindValue(
+        "propAnimation",
+        value=>{
+            el.animation=value;
+        }
+    );
+
+    bindValue(
         "propLocked",
         value=>{
             el.locked=value==="true";
@@ -5246,6 +5687,53 @@ function renderSlideInspector(
         <div class="inspector-section">
 
             <div class="inspector-title">
+                Presentation theme
+            </div>
+
+            <div class="button-grid">
+                ${PRESENTATION_THEMES.map(
+                    theme=>`
+                        <button
+                            class="inspector-action"
+                            type="button"
+                            data-slide-theme="${theme.id}"
+                            aria-pressed="${state.designTheme===theme.id}"
+                            style="
+                                display:flex;
+                                align-items:center;
+                                gap:7px;
+                                border-color:${state.designTheme===theme.id
+                                    ? theme.accent
+                                    : "var(--border)"};
+                            "
+                        >
+                            <span
+                                aria-hidden="true"
+                                style="
+                                    display:inline-block;
+                                    width:15px;
+                                    height:15px;
+                                    flex:0 0 15px;
+                                    border-radius:4px;
+                                    border:1px solid rgba(15,23,42,.14);
+                                    background:linear-gradient(90deg,${theme.accent} 0 4px,${theme.background} 4px);
+                                "
+                            ></span>
+                            ${theme.name}
+                        </button>
+                    `
+                ).join("")}
+            </div>
+
+            <div style="margin-top:7px;color:var(--muted);font-size:11px;line-height:1.4">
+                Applies a coordinated background and accent to every slide.
+            </div>
+
+        </div>
+
+        <div class="inspector-section">
+
+            <div class="inspector-title">
                 Slide
             </div>
 
@@ -5281,28 +5769,21 @@ function renderSlideInspector(
                 <label>Transition</label>
 
                 <select id="slideTransition">
-
-                    <option value="none"
-                        ${slide.transition==="none"?"selected":""}>
+                    <option value="none" ${!slide.transition||slide.transition==="none"?"selected":""}>
                         None
                     </option>
-
-                    <option value="fade"
-                        ${slide.transition==="fade"?"selected":""}>
-                        Fade
-                    </option>
-
-                    <option value="slide"
-                        ${slide.transition==="slide"?"selected":""}>
-                        Slide
-                    </option>
-
-                    <option value="zoom"
-                        ${slide.transition==="zoom"?"selected":""}>
-                        Zoom
-                    </option>
-
+                    ${PRESENTATION_TRANSITIONS.map(
+                        effect=>`
+                            <option
+                                value="${effect.id}"
+                                ${slide.transition===effect.id?"selected":""}
+                            >${effect.name}</option>
+                        `
+                    ).join("")}
                 </select>
+                <div style="margin-top:4px;color:var(--muted);font-size:11px;line-height:1.4">
+                    Plays between slides in Present mode and PowerPoint exports.
+                </div>
 
             </div>
 
@@ -5407,6 +5888,17 @@ function renderSlideInspector(
 
         </div>
     `;
+
+    panel.querySelectorAll(
+        "[data-slide-theme]"
+    ).forEach(button=>{
+        button.addEventListener(
+            "click",
+            ()=>{
+                applySlideTheme(button.dataset.slideTheme);
+            }
+        );
+    });
 
     bindValue(
         "slideNameProp",
@@ -5664,8 +6156,20 @@ function applyZoom(){
             "slideStage"
         );
 
+    const canvasScroll=
+        document.getElementById(
+            "canvasScroll"
+        );
+
+    const fitScale=getCanvasFitScale();
+
     const scale=
-        state.zoom/100;
+        state.zoom/100*fitScale;
+
+    canvasScroll.style.overflow=
+        state.zoom>100
+            ? "auto"
+            : "hidden";
 
     stage.style.transform=
         `scale(${scale})`;
@@ -5676,12 +6180,28 @@ function applyZoom(){
 
     document.getElementById(
         "zoomSlider"
-    ).value=state.zoom;
+    ).value=Math.max(
+        25,
+        Math.min(200,Math.round(scale*100))
+    );
 
     document.getElementById(
         "zoomLabel"
     ).textContent=
-        state.zoom+"%";
+        Math.round(scale*100)+"%";
+}
+
+function getCanvasFitScale(){
+
+    const canvasScroll=document.getElementById(
+        "canvasScroll"
+    );
+
+    return Math.min(
+        1,
+        Math.max(0.1,(canvasScroll.clientWidth-24)/state.width),
+        Math.max(0.1,(canvasScroll.clientHeight-24)/state.height)
+    );
 }
 
 
@@ -5765,10 +6285,21 @@ function renderPresentation(){
     container.style.height=
         state.height*scale+"px";
 
+    container.className="presentation-slide";
+
+    if(PRESENTATION_TRANSITIONS.some(
+        effect=>effect.id===slide.transition
+    )){
+        container.classList.add(
+            `transition-${slide.transition}`
+        );
+    }
+
     container.innerHTML=
         renderSlideStaticHTML(
             slide,
-            false
+            false,
+            true
         );
 
     document.getElementById(
@@ -6099,6 +6630,20 @@ document.getElementById(
     "themeBtn"
 ).onclick=toggleTheme;
 
+document.getElementById(
+    "mobileInspectorBtn"
+).addEventListener(
+    "click",
+    event=>{
+        const inspector=document.querySelector(".right-panel");
+        const isOpen=inspector.classList.toggle("mobile-open");
+        event.currentTarget.setAttribute(
+            "aria-expanded",
+            String(isOpen)
+        );
+    }
+);
+
 
 document.getElementById(
     "fullscreenBtn"
@@ -6408,11 +6953,37 @@ function handleAction(action){
    TEMPLATE PRESENTATIONS
 ========================================================= */
 
+function createDeckTemplate(
+    id,
+    name,
+    description,
+    accent,
+    dark,
+    design,
+    pages
+){
+    return {
+        id,
+        name,
+        description,
+        accent,
+        dark,
+        design,
+        slides:pages.map((page,index)=>({
+            title:page[0],
+            subtitle:page[1],
+            bullets:page[2],
+            cover:index===0
+        }))
+    };
+}
+
 const PRESENTATION_TEMPLATES=[
     {
         id:"startup-pitch",
         name:"Startup pitch",
         description:"A concise investor pitch with problem, solution, market, and ask.",
+        design:"split",
         accent:"#f97316",
         dark:"#172033",
         slides:[
@@ -6448,6 +7019,7 @@ const PRESENTATION_TEMPLATES=[
         id:"business-review",
         name:"Quarterly business review",
         description:"Executive-ready performance review, insights, and priorities.",
+        design:"dashboard",
         accent:"#2563eb",
         dark:"#10213d",
         slides:[
@@ -6483,6 +7055,7 @@ const PRESENTATION_TEMPLATES=[
         id:"project-plan",
         name:"Project plan",
         description:"Align a team around outcomes, owners, milestones, and risks.",
+        design:"roadmap",
         accent:"#059669",
         dark:"#12352f",
         slides:[
@@ -6518,6 +7091,7 @@ const PRESENTATION_TEMPLATES=[
         id:"lesson",
         name:"Lesson / training",
         description:"Teach a clear concept with objectives, examples, practice, and a recap.",
+        design:"chalkboard",
         accent:"#7c3aed",
         dark:"#2d2051",
         slides:[
@@ -6553,6 +7127,7 @@ const PRESENTATION_TEMPLATES=[
         id:"portfolio",
         name:"Creative portfolio",
         description:"Present selected work, a case study, process, and contact details.",
+        design:"editorial",
         accent:"#db2777",
         dark:"#342033",
         slides:[
@@ -6588,6 +7163,7 @@ const PRESENTATION_TEMPLATES=[
         id:"product-launch",
         name:"Product launch",
         description:"Frame the audience, value proposition, go-to-market, and launch plan.",
+        design:"product",
         accent:"#0891b2",
         dark:"#103341",
         slides:[
@@ -6618,43 +7194,339 @@ const PRESENTATION_TEMPLATES=[
                 bullets:["Before launch: [readiness item] · [owner]","Launch day: [action] · [owner]","After launch: [metric] · [review date]"]
             }
         ]
-    }
+    },
+    {
+        id:"conference-keynote",
+        name:"Conference keynote",
+        description:"A bold opening, clear main ideas, practical takeaways, and a strong close.",
+        design:"stage",
+        accent:"#d14d72",
+        dark:"#321c3c",
+        slides:[
+            {
+                title:"Make the next thing matter",
+                subtitle:"[Talk title] · [Speaker] · [Event]",
+                bullets:[],
+                cover:true
+            },
+            {
+                title:"Why this matters now",
+                subtitle:"Give the audience a reason to lean in.",
+                bullets:["A change is reshaping [industry or audience]","The familiar approach no longer fits","There is a practical opportunity to respond"]
+            },
+            {
+                title:"The idea to remember",
+                subtitle:"Make the central message simple enough to repeat.",
+                bullets:["Start with [principle]","Focus on [specific action]","Measure progress by [meaningful outcome]"]
+            },
+            {
+                title:"Put it into practice",
+                subtitle:"Turn the idea into a useful next step.",
+                bullets:["Try: [small action this week]","Notice: [signal or result]","Share: [learning with the team]"]
+            },
+            {
+                title:"Take the next step",
+                subtitle:"[One memorable closing thought]",
+                bullets:["Choose one action","Invite one conversation","Keep learning"]
+            }
+        ]
+    },
+    {
+        id:"case-study",
+        name:"Customer case study",
+        description:"Tell a credible before-and-after story with evidence and customer impact.",
+        design:"case-study",
+        accent:"#0f8b8d",
+        dark:"#123538",
+        slides:[
+            {
+                title:"From challenge to change",
+                subtitle:"[Customer] · [Outcome] · [Date]",
+                bullets:[],
+                cover:true
+            },
+            {
+                title:"Meet the customer",
+                subtitle:"Set the scene before introducing the solution.",
+                bullets:["Organization: [who they are]","Context: [team, market, or scale]","Goal: [what they wanted to achieve]"]
+            },
+            {
+                title:"The challenge",
+                subtitle:"Describe the real cost of the status quo.",
+                bullets:["[Pain point] created [business impact]","The existing approach made [task] difficult","Success meant [clear target]"]
+            },
+            {
+                title:"What changed",
+                subtitle:"Show the approach and the work behind it.",
+                bullets:["Started with [discovery or first step]","Introduced [solution or process]","Worked together to [important milestone]"]
+            },
+            {
+                title:"The result",
+                subtitle:"Use verified measures and a specific customer quote.",
+                bullets:["[Metric] improved by [verified amount]","[Team or customer] can now [new capability]","Next: [what comes after this success]"]
+            }
+        ]
+    },
+    {
+        id:"workshop",
+        name:"Workshop / brainstorm",
+        description:"Guide a group from shared context through ideas, decisions, and action owners.",
+        design:"workshop",
+        accent:"#a15c24",
+        dark:"#38271d",
+        slides:[
+            {
+                title:"Let’s make progress",
+                subtitle:"[Workshop goal] · [Facilitator] · [Date]",
+                bullets:[],
+                cover:true
+            },
+            {
+                title:"The challenge",
+                subtitle:"Agree on the question before generating solutions.",
+                bullets:["What we know: [shared facts]","What is unresolved: [open question]","What success looks like: [outcome]"]
+            },
+            {
+                title:"Explore possibilities",
+                subtitle:"Capture options before evaluating them.",
+                bullets:["What if we [bold possibility]?","How might we [customer-centered question]?","What has worked in a different context?"]
+            },
+            {
+                title:"Choose a direction",
+                subtitle:"Compare ideas against a small set of useful criteria.",
+                bullets:["Impact: [who benefits and how]","Effort: [time, skills, dependencies]","Evidence: [what we can test first]"]
+            },
+            {
+                title:"Turn ideas into action",
+                subtitle:"Leave with clear owners and a follow-up date.",
+                bullets:["Next action: [specific task] · [owner]","First checkpoint: [date]","Open question to resolve: [question]"]
+            }
+        ]
+    },
+    createDeckTemplate(
+        "annual-report",
+        "Annual report",
+        "An editorial year-in-review with standout figures, milestones, and a confident outlook.",
+        "#1d4ed8","#101a3a","data-editorial",
+        [
+            ["A year of meaningful progress","Annual review · [Year] · [Organization]",[]],
+            ["The year in three numbers","A clear view of the progress behind the story.",["[00%] · Growth against our plan","[0,000] · People reached this year","[$0.0M] · Invested in long-term impact"]],
+            ["Progress worth sharing","Show what changed, not just what was delivered.",["[Milestone one] · [measurable result]","[Milestone two] · [who benefited]","[Milestone three] · [what comes next]"]],
+            ["What we learned","Use evidence to explain where the organization is heading.",["The strongest signal: [insight]","A challenge we addressed: [response]","An opportunity ahead: [next step]"]],
+            ["Looking ahead","A focused set of priorities for the new year.",["Invest in [strategic priority]","Strengthen [capability or community]","Measure success by [outcome]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "modern-portfolio",
+        "Modern portfolio",
+        "A visual-first creative portfolio with a bold cover, featured projects, and contact page.",
+        "#e94677","#211d31","mosaic",
+        [
+            ["Selected work","[Name] · [Creative field] · [Year]",[]],
+            ["The work","A considered selection of projects and visual explorations.",["01 · [Featured project] · [Role]","02 · [Featured project] · [Role]","03 · [Personal experiment]"]],
+            ["A project, up close","Give one piece room to breathe and explain the decisions.",["The brief: [what needed to change]","The idea: [creative direction]","The result: [outcome or response]"]],
+            ["Process, with purpose","A simple approach keeps the work thoughtful and useful.",["Listen closely to the brief","Make ideas tangible and test them","Polish the details that matter"]],
+            ["Available for good work","[Email] · [Website] · [Social profile]",["Independent projects","Selected collaborations","Based in [city / time zone]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "education-course",
+        "Education course",
+        "A friendly teaching deck for explaining concepts, modeling practice, and checking understanding.",
+        "#398a72","#193c39","notebook",
+        [
+            ["Learn by doing","[Course name] · [Instructor] · [Date]",[]],
+            ["Today’s learning goals","By the end of this session, learners can:",["Explain [important idea] in their own words","Use [method] to solve a familiar task","Check their work with [simple test]"]],
+            ["One idea, step by step","Make the hard part visible with a worked example.",["First · Notice [important detail]","Next · Try [small action]","Finally · Check [expected result]"]],
+            ["Your turn","Try the method before looking at the answer.",["Scenario: [realistic situation]","Task: [what to make, solve, or explain]","Pair up and compare your approach"]],
+            ["A quick check-in","Bring the learning together and choose a next step.",["One idea I can explain is [concept]","One thing I want to practice is [skill]","My next question is [question]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "product-roadmap",
+        "Product roadmap",
+        "A clean, milestone-led roadmap with owners, decision gates, and measurable outcomes.",
+        "#007c83","#12323b","timeline",
+        [
+            ["What we’re building next","Product roadmap · [Time period] · [Team]",[]],
+            ["The direction","Keep the roadmap connected to real customer needs.",["North star: [measurable customer outcome]","Audience: [who we are building for]","Constraint: [important trade-off]"]],
+            ["The journey","Frame work around outcomes rather than a feature wish-list.",["Now · [customer problem] · [owner]","Next · [capability to validate] · [owner]","Later · [direction to explore]"]],
+            ["How we’ll know","Define the signals that guide a go / no-go decision.",["Adoption: [target]","Quality: [guardrail]","Customer result: [evidence]"]],
+            ["Decisions and next steps","Make the next review concrete and easy to prepare for.",["Decision needed: [question] · [owner]","Risk to resolve: [dependency]","Next roadmap review: [date]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "nonprofit-impact",
+        "Nonprofit impact",
+        "An impact story that connects community needs, program results, and a practical call to action.",
+        "#dc6b38","#362331","impact",
+        [
+            ["Together, change is possible","Community impact · [Organization] · [Year]",[]],
+            ["The need in our community","Describe the challenge with care and local context.",["[Community] is navigating [specific challenge]","The gap: [service or resource needed]","Our response starts with [approach]"]],
+            ["Impact people can feel","Use clear, verified outcomes and human context.",["[0,000] · Neighbors supported","[00%] · Reached the intended outcome","[00] · Community partners working together"]],
+            ["How change happens","Show the connection between support and lasting progress.",["Listen to community members","Deliver [program or service] with partners","Learn, adapt, and share what works"]],
+            ["Be part of what’s next","Invite support with one specific, achievable next step.",["Give: [specific contribution]","Volunteer: [time or skill]","Share: [story or opportunity]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "real-estate",
+        "Real estate showcase",
+        "A high-end property presentation with a confident hero, feature callouts, and clear viewing details.",
+        "#aa8050","#222528","architecture",
+        [
+            ["A place to come home to","[Property name] · [Neighborhood] · [Year]",[]],
+            ["The residence","Lead with what makes this property feel distinct.",["[0,000] sq ft · [thoughtful interior detail]","[0] bedrooms · [0] baths","[Neighborhood] · [local amenity or landmark]"]],
+            ["Designed around the day","Connect the layout to how the home can be lived in.",["Gather · [living and dining feature]","Unwind · [private space or suite]","Step outside · [garden, terrace, or view]"]],
+            ["The neighborhood","Help prospective residents picture the daily routine.",["[X] min · [transit or commute]","[X] min · [park, school, or market]","[Local detail] · [community benefit]"]],
+            ["Arrange a private viewing","[Agent name] · [Email] · [Phone]",["Available: [date or viewing window]","Additional details: [website or listing]","Next step: [how to book]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "marketing-campaign",
+        "Marketing campaign",
+        "A vivid campaign brief that aligns audience, message, creative, channels, and success measures.",
+        "#f04f42","#2b213d","campaign",
+        [
+            ["A campaign people remember","[Campaign] · [Brand] · [Launch window]",[]],
+            ["The audience insight","Start with an observable need, not an assumed persona.",["Audience: [specific group and context]","Tension: [what gets in the way]","Opportunity: [what they want instead]"]],
+            ["One message, everywhere","Give creative and channel teams a strong common thread.",["Promise: [single useful benefit]","Proof: [specific reason to believe]","Voice: [three words that set the tone]"]],
+            ["Show up with intention","Make channel choices support the customer journey.",["Discover · [channel and creative format]","Consider · [proof point or experience]","Act · [clear next action]"]],
+            ["Learn and improve","Track a few measures tied to the campaign objective.",["Reach: [qualified audience target]","Response: [engagement or action]","Review date: [when to optimize]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "research-lab",
+        "Research lab",
+        "A precise research presentation for framing a question, evidence, method, findings, and limits.",
+        "#43c6a5","#101c2d","lab",
+        [
+            ["A question worth testing","[Research topic] · [Team] · [Date]",[]],
+            ["The question","Make the claim, scope, and uncertainty explicit.",["Question: [what we set out to learn]","Hypothesis: [testable statement]","Scope: [population, context, or period]"]],
+            ["How we investigated","Show the method clearly enough to evaluate.",["Sample: [size and selection]","Method: [study, analysis, or experiment]","Measure: [primary outcome and guardrail]"]],
+            ["What the evidence says","Separate observations from interpretations.",["Finding one: [result and evidence]","Finding two: [result and evidence]","Caveat: [limitation or uncertainty]"]],
+            ["Implications and next tests","Turn a result into a responsible next decision.",["Implication: [what changes]","Next test: [how to reduce uncertainty]","Owner: [person or group]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "celebration",
+        "Celebration / event",
+        "A warm, elegant event deck for sharing a welcome, the day’s moments, and a heartfelt close.",
+        "#c16a83","#39243a","celebration",
+        [
+            ["A day to remember","[Names / Event] · [Date] · [Place]",[]],
+            ["Welcome, everyone","Make guests feel part of the day from the very first slide.",["We’re grateful you’re here","Today is about [people, milestone, or story]","Make yourself at home"]],
+            ["The moments ahead","Keep the schedule clear, relaxed, and easy to follow.",["[Time] · Welcome and gathering","[Time] · [Main event or ceremony]","[Time] · Dinner, music, and celebration"]],
+            ["A few things to know","Help guests enjoy the day without fuss.",["Getting there: [travel or parking note]","The little details: [helpful guest note]","Need anything? Ask [contact or host]"]],
+            ["Thank you for being here","[A short, personal closing message]",["Take a photo","Share a story","Celebrate together"]]
+        ]
+    ),
+    createDeckTemplate(
+        "financial-report",
+        "Financial report",
+        "An investor-ready financial overview with clear assumptions, trends, risks, and outlook.",
+        "#21735c","#182b36","finance",
+        [
+            ["Financial performance","[Period] · [Organization] · [Currency]",[]],
+            ["The headline numbers","Show the period, comparison, and definition behind every measure.",["Revenue · [$0.0M] · [+/-%] vs plan","Operating margin · [00%] · [+/-%] year on year","Cash position · [$0.0M] · [period end]"]],
+            ["What moved the result","Explain the drivers instead of only showing the total.",["Growth driver: [product, region, or segment]","Cost pressure: [specific item]","One-time item: [if applicable]"]],
+            ["Risks and assumptions","Make the outlook understandable and appropriately qualified.",["Assumption: [input and source]","Sensitivity: [variable and potential impact]","Risk response: [owner and mitigation]"]],
+            ["Outlook and decisions","Connect the forecast to specific actions and owners.",["Base case: [range and time horizon]","Decision required: [approval or investment]","Next review: [date and owner]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "travel-story",
+        "Travel story",
+        "A photo-album-inspired itinerary with destination highlights, daily chapters, and useful tips.",
+        "#1986a0","#132c3b","travel",
+        [
+            ["Somewhere worth going","[Destination] · [Month / Year] · [Travelers]",[]],
+            ["First impressions","Set the scene with a place, a detail, and a feeling.",["The first view: [landscape or landmark]","The sound: [street, sea, forest, or market]","The small surprise: [local detail]"]],
+            ["A day in the city","Give the itinerary enough room to feel unhurried.",["Morning · [neighborhood or walk]","Afternoon · [museum, meal, or discovery]","Evening · [view, music, or local table]"]],
+            ["Out beyond the center","Mix a change of pace with practical travel details.",["Getting there: [route or transit]","Bring along: [useful item]","Make time for: [quiet place or experience]"]],
+            ["Keep this place with you","Close on a favorite memory and a helpful tip.",["A moment to remember: [short story]","A place to return to: [recommendation]","One tip for a friend: [practical advice]"]]
+        ]
+    ),
+    createDeckTemplate(
+        "architecture-study",
+        "Architecture study",
+        "A spatial, grid-based design review for introducing a site, form, material, and design decision.",
+        "#b66046","#272b34","grid-atlas",
+        [
+            ["Form follows the way we live","[Project] · [Location] · [Studio]",[]],
+            ["The site","Anchor the design in light, movement, and local context.",["Orientation: [sun, wind, or view]","Connection: [street, landscape, or community]","Constraint: [site condition]"]],
+            ["The organizing idea","Show how one clear principle shaped the plan.",["Public edge: [arrival and shared spaces]","Private core: [quiet and protected spaces]","Threshold: [how inside meets outside]"]],
+            ["Materials in context","Tie material selection to use and atmosphere.",["Structure: [material and reason]","Envelope: [performance and expression]","Detail: [one element worth noticing]"]],
+            ["The next design decision","Make the open question and its trade-off visible.",["Decision: [what must be resolved]","Trade-off: [benefit and cost]","Next review: [date or milestone]"]]
+        ]
+    )
 ];
 
 
 function showTemplateGallery(){
 
     const cards=PRESENTATION_TEMPLATES.map(
-        template=>`
-            <button
-                class="inspector-action"
-                data-template-id="${escapeAttr(template.id)}"
-                style="
-                    text-align:left;
-                    min-height:96px;
-                    padding:11px;
-                    border-top:4px solid ${escapeAttr(template.accent)};
-                "
-            >
-                <strong style="display:block;margin-bottom:6px">
-                    ${escapeHTML(template.name)}
-                </strong>
-                <span style="color:var(--muted);line-height:1.4">
-                    ${escapeHTML(template.description)}
-                </span>
-            </button>
-        `
+        template=>{
+            const cover=createPresentationTemplate(
+                template.id,
+                true
+            ).slides[0];
+
+            return `
+                <button
+                    class="inspector-action"
+                    data-template-id="${escapeAttr(template.id)}"
+                    style="
+                        text-align:left;
+                        min-height:170px;
+                        padding:8px;
+                        border-top:4px solid ${escapeAttr(template.accent)};
+                    "
+                >
+                    <div
+                        class="template-preview"
+                        data-template-preview
+                        style="
+                            position:relative;
+                            width:100%;
+                            aspect-ratio:16/9;
+                            overflow:hidden;
+                            margin-bottom:8px;
+                            border-radius:5px;
+                            background:${escapeAttr(template.dark)};
+                        "
+                    >
+                        <div
+                            class="template-preview-content"
+                            style="
+                                position:absolute;
+                                left:0;
+                                top:0;
+                                width:240px;
+                                height:135px;
+                                transform-origin:top left;
+                            "
+                        >${renderSlideStaticHTML(cover,true)}</div>
+                    </div>
+                    <strong style="display:block;margin-bottom:4px">
+                        ${escapeHTML(template.name)}
+                    </strong>
+                    <span style="color:var(--muted);line-height:1.35;font-size:11px">
+                        ${escapeHTML(template.description)}
+                    </span>
+                </button>
+            `;
+        }
     ).join("");
 
     showModal(
         "Template presentations",
         `
             <p style="margin:0 0 12px;color:var(--muted)">
-                Start with an editable sample deck. Choosing a template replaces the current presentation.
+                ${PRESENTATION_TEMPLATES.length} original, editable designs. Choosing one replaces the current presentation.
             </p>
             <div style="
                 display:grid;
-                grid-template-columns:1fr 1fr;
+                grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
                 gap:8px;
                 max-height:55vh;
                 overflow:auto;
@@ -6664,6 +7536,16 @@ function showTemplateGallery(){
         `,
         ()=>{}
     );
+
+    document.querySelectorAll(
+        "[data-template-preview]"
+    ).forEach(preview=>{
+        const content=preview.querySelector(
+            ".template-preview-content"
+        );
+        const scale=preview.clientWidth/240;
+        content.style.transform=`scale(${scale})`;
+    });
 
     document.querySelectorAll(
         "[data-template-id]"
@@ -6682,7 +7564,7 @@ function showTemplateGallery(){
 }
 
 
-function createPresentationTemplate(templateId){
+function createPresentationTemplate(templateId,previewOnly=false){
 
     const template=PRESENTATION_TEMPLATES.find(
         item=>item.id===templateId
@@ -6692,7 +7574,75 @@ function createPresentationTemplate(templateId){
         throw new Error("The selected template is unavailable.");
     }
 
-    const slides=template.slides.map(
+    const templateIndex=PRESENTATION_TEMPLATES.indexOf(template);
+    const ink="#17243a";
+    const muted="#64748b";
+    const paper="#f7f6f2";
+    const soft="#e7edf3";
+
+    function addSlideText(slide,x,y,w,h,text,size,color,weight="400",font="Arial",align="left"){
+        const element=createTextElement(x,y,w,h,text,{
+            fontFamily:font,
+            fontSize:size,
+            color,
+            fontWeight:weight,
+            align,
+            padding:0
+        });
+        element.animation=PRESENTATION_ANIMATIONS[
+            (templateIndex+slide.elements.length)%PRESENTATION_ANIMATIONS.length
+        ].id;
+        element.z=slide.elements.length;
+        slide.elements.push(element);
+        return element;
+    }
+
+    function addSlideShape(slide,x,y,w,h,fill,shape="rectangle",rotation=0){
+        const element=createShapeElement(x,y,w,h,shape);
+        element.fill=fill;
+        element.stroke=fill;
+        element.strokeWidth=0;
+        element.rotation=rotation;
+        element.z=slide.elements.length;
+        slide.elements.push(element);
+        return element;
+    }
+
+    function addPageHeading(slide,page,index,color=ink,font="Arial"){
+        addSlideText(
+            slide,64,42,790,22,
+            `${template.name.toUpperCase()}   /   ${String(index+1).padStart(2,"0")}`,
+            12,template.accent,"700",font
+        );
+        addSlideText(slide,64,82,820,58,page.title,37,color,"700",font);
+        addSlideText(slide,66,151,800,50,page.subtitle,18,muted,"400",font);
+    }
+
+    function addCards(slide,page,x,y,w,h,colors){
+        const gap=14;
+        const cols=page.bullets.length>3?2:Math.max(1,page.bullets.length);
+        const rows=Math.ceil(page.bullets.length/cols);
+        const cardW=(w-gap*(cols-1))/cols;
+        const cardH=(h-gap*(rows-1))/rows;
+
+        page.bullets.forEach((bullet,index)=>{
+            const col=index%cols;
+            const row=Math.floor(index/cols);
+            const left=x+col*(cardW+gap);
+            const top=y+row*(cardH+gap);
+            const color=colors[index%colors.length];
+            addSlideShape(slide,left,top,cardW,cardH,"#ffffff","rounded");
+            addSlideShape(slide,left,top,7,cardH,color);
+            addSlideText(slide,left+20,top+17,cardW-38,26,String(index+1).padStart(2,"0"),15,color,"700");
+            addSlideText(slide,left+20,top+50,cardW-38,cardH-60,bullet,18,ink,"400");
+        });
+    }
+
+    const pages=previewOnly
+        ? template.slides.slice(0,1)
+        : template.slides;
+
+    const slides=pages.map(
         (page,index)=>{
 
             const slide={
@@ -6700,68 +7650,509 @@ function createPresentationTemplate(templateId){
                 name:page.title,
                 background:{
                     type:"solid",
-                    color:page.cover
-                        ? template.dark
-                        : "#ffffff"
+                    color:page.cover?template.dark:paper
                 },
                 notes:"",
-                transition:"none",
+                transition:PRESENTATION_TRANSITIONS[
+                    (templateIndex+index)%PRESENTATION_TRANSITIONS.length
+                ].id,
+                themeId:null,
                 elements:[]
             };
 
-            const addText=(
-                x,y,w,h,text,size,color,weight="400"
-            )=>{
-                const element=createTextElement(
-                    x,y,w,h,text,
-                    {
-                        fontFamily:"Arial",
-                        fontSize:size,
-                        color,
-                        fontWeight:weight,
-                        padding:0
-                    }
-                );
-                element.z=slide.elements.length;
-                slide.elements.push(element);
-            };
+            const cover=page.cover;
+            const accent=template.accent;
+            const secondary=template.dark;
+            const bullets=page.bullets;
+            const design=template.design;
 
-            const addShape=(x,y,w,h,fill,shape="rectangle")=>{
-                const element=createShapeElement(
-                    x,y,w,h,shape
-                );
-                element.fill=fill;
-                element.stroke=fill;
-                element.strokeWidth=0;
-                element.z=slide.elements.length;
-                slide.elements.push(element);
-            };
-
-            if(page.cover){
-
-                addShape(0,0,18,540,template.accent);
-                addText(90,105,780,35,template.name.toUpperCase(),16,template.accent,"700");
-                addText(90,175,780,145,page.title,56,"#ffffff","700");
-                addText(94,340,720,80,page.subtitle,25,"#dbe4f0");
-                addShape(94,455,115,5,template.accent);
-                addText(94,478,780,30,"EDITABLE PRESENTATION TEMPLATE",13,"#c1ccdc","700");
-            }else{
-
-                addShape(0,0,12,540,template.accent);
-                addText(70,42,820,24,`${template.name.toUpperCase()}  /  ${String(index).padStart(2,"0")}`,13,template.accent,"700");
-                addText(70,82,820,64,page.title,38,"#172033","700");
-                addText(70,155,815,56,page.subtitle,19,"#64748b");
-                addShape(70,224,820,2,"#e2e8f0");
-
-                page.bullets.forEach(
-                    (bullet,bulletIndex)=>{
-                        const top=255+bulletIndex*75;
-                        addShape(76,top+8,14,14,template.accent,"circle");
-                        addText(108,top,755,52,bullet,22,"#273449");
-                    }
-                );
-
-                addText(70,498,820,22,"[Add your name, team, or presentation date]",12,"#94a3b8");
+            if(design==="split"){
+                if(cover){
+                    slide.background.color="#f5f3ee";
+                    addSlideShape(slide,0,0,545,540,secondary);
+                    addSlideShape(slide,545,0,415,540,accent);
+                    addSlideShape(slide,638,72,224,225,"#293149","circle");
+                    addSlideShape(slide,683,118,224,225,"#34354b","circle");
+                    addSlideText(slide,70,78,410,24,template.name.toUpperCase(),14,"#ffd8b5","700");
+                    addSlideText(slide,70,160,420,145,page.title,50,"#ffffff","700");
+                    addSlideText(slide,72,330,390,82,page.subtitle,21,"#dce6f2");
+                    addSlideText(slide,72,476,390,24,"01  /  THE OPPORTUNITY",12,"#ffffff","700");
+                }else{
+                    slide.background.color="#ffffff";
+                    addSlideShape(slide,660,0,300,540,accent);
+                    addSlideText(slide,62,64,550,25,template.name.toUpperCase(),13,accent,"700");
+                    addSlideText(slide,62,110,550,72,page.title,38,ink,"700");
+                    addSlideText(slide,64,198,535,67,page.subtitle,18,muted);
+                    bullets.forEach((text,item)=>{
+                        const top=292+item*65;
+                        addSlideShape(slide,68,top+7,10,10,accent,"circle");
+                        addSlideText(slide,91,top,510,48,text,19,ink);
+                    });
+                    addSlideText(slide,698,100,220,30,"THE BIG IDEA",13,"#ffffff","700");
+                    addSlideText(slide,698,160,220,160,`${String(index).padStart(2,"0")}`,78,"#ffffff","700");
+                    addSlideText(slide,698,355,210,95,"One clear move.\nA measurable result.",20,"#ffffff","400");
+                }
+            }else if(design==="dashboard"){
+                slide.background.color=cover?"#0e1c36":"#eef2f7";
+                if(cover){
+                    addSlideShape(slide,0,0,960,14,accent);
+                    addSlideText(slide,68,58,710,24,"LEADERSHIP BRIEFING     /     "+template.name.toUpperCase(),13,"#92b9ff","700");
+                    addSlideText(slide,68,126,800,116,page.title,52,"#ffffff","700");
+                    addSlideText(slide,70,250,740,54,page.subtitle,22,"#cad5e6");
+                    ["$0.0M","00%","0,000"].forEach((metric,item)=>{
+                        const left=68+item*280;
+                        addSlideShape(slide,left,365,250,110,"#192a49","rounded");
+                        addSlideText(slide,left+19,385,220,52,metric,32,"#ffffff","700");
+                        addSlideText(slide,left+20,441,216,18,["GROWTH","ON PLAN","PEOPLE"][item],11,accent,"700");
+                    });
+                }else{
+                    addPageHeading(slide,page,index,ink);
+                    addCards(slide,page,62,225,835,276,["#2563eb","#0e9f8a","#e88a3a","#7b62c8"]);
+                }
+            }else if(design==="roadmap"){
+                slide.background.color=cover?"#11343a":"#f6f4ed";
+                if(cover){
+                    addSlideText(slide,72,73,760,22,"A FIELD GUIDE TO WHAT COMES NEXT",13,"#91d6c5","700");
+                    addSlideText(slide,72,142,810,118,page.title,53,"#ffffff","700");
+                    addSlideText(slide,75,282,760,52,page.subtitle,21,"#c1d9d3");
+                    addSlideShape(slide,105,410,730,4,"#4c7774");
+                    [0,1,2].forEach(item=>{
+                        const left=110+item*345;
+                        addSlideShape(slide,left,398,27,27,accent,"circle");
+                        addSlideText(slide,left-12,445,190,28,["DISCOVER","BUILD","DELIVER"][item],13,"#ffffff","700");
+                    });
+                }else{
+                    addPageHeading(slide,page,index,ink);
+                    addSlideShape(slide,119,228,3,258,"#cad6c9");
+                    bullets.forEach((text,item)=>{
+                        const top=223+item*88;
+                        addSlideShape(slide,108,top+4,25,25,accent,"circle");
+                        addSlideText(slide,157,top,690,30,`0${item+1}   ${text}`,19,ink,"700");
+                        addSlideText(slide,158,top+36,640,25,["Explore the opportunity","Make the next move tangible","Review evidence and learn"][item],14,muted);
+                    });
+                }
+            }else if(design==="chalkboard"){
+                slide.background.color="#193631";
+                if(cover){
+                    addSlideText(slide,86,76,760,26,"FIELD NOTES   /   "+template.name.toUpperCase(),13,"#b4d4b3","700","Georgia");
+                    addSlideText(slide,86,154,790,145,page.title,54,"#f2eddc","700","Georgia");
+                    addSlideText(slide,91,321,740,74,page.subtitle,22,"#d8e2cd","400","Georgia");
+                    addSlideText(slide,90,446,740,26,"○  NOTICE     ○  PRACTICE     ○  REFLECT",14,"#d5cda9","700","Georgia");
+                }else{
+                    addSlideText(slide,74,58,810,20,template.name.toUpperCase()+"     /     SESSION NOTES",12,"#b6dcb8","700","Georgia");
+                    addSlideText(slide,74,100,820,65,page.title,38,"#f2eddc","700","Georgia");
+                    addSlideText(slide,77,174,800,48,page.subtitle,18,"#d8e2cd","400","Georgia");
+                    bullets.forEach((text,item)=>{
+                        const top=264+item*64;
+                        addSlideText(slide,80,top,48,42,["①","②","③"][item]||"•",23,"#e9cc75","700","Georgia");
+                        addSlideText(slide,137,top,735,45,text,20,"#f2eddc","400","Georgia");
+                    });
+                }
+            }else if(design==="editorial"){
+                slide.background.color=cover?"#efe9df":"#fbf8f2";
+                if(cover){
+                    addSlideShape(slide,650,-70,410,410,accent,"circle");
+                    addSlideShape(slide,782,371,74,74,secondary,"circle");
+                    addSlideText(slide,68,68,600,26,"AN INDEPENDENT POINT OF VIEW",13,accent,"700","Georgia");
+                    addSlideText(slide,68,145,660,165,page.title,58,ink,"700","Georgia");
+                    addSlideText(slide,73,345,540,75,page.subtitle,22,muted,"400","Georgia");
+                    addSlideText(slide,74,471,470,24,"SELECTED WORKS   ·   "+new Date().getFullYear(),12,ink,"700","Georgia");
+                }else{
+                    addPageHeading(slide,page,index,ink,"Georgia");
+                    addSlideShape(slide,438,220,2,268,accent);
+                    addSlideText(slide,67,243,330,190,page.subtitle,24,accent,"400","Georgia");
+                    bullets.forEach((text,item)=>{
+                        const top=230+item*83;
+                        addSlideText(slide,480,top,45,24,"0"+(item+1),14,accent,"700","Georgia");
+                        addSlideText(slide,529,top,340,62,text,20,ink,"400","Georgia");
+                    });
+                }
+            }else if(design==="product"){
+                slide.background.color=cover?"#102235":"#eef5f7";
+                if(cover){
+                    addSlideText(slide,65,72,390,24,"PRODUCT NOTE   /   "+template.name.toUpperCase(),12,"#7ed5d0","700");
+                    addSlideText(slide,65,143,430,150,page.title,48,"#ffffff","700");
+                    addSlideText(slide,68,314,400,75,page.subtitle,20,"#c6d8df");
+                    addSlideShape(slide,548,62,350,416,"#ffffff","rounded");
+                    addSlideShape(slide,568,82,310,37,"#e8eef2","rounded");
+                    addSlideShape(slide,583,96,10,10,accent,"circle");
+                    addSlideShape(slide,600,96,10,10,"#f1b46f","circle");
+                    addSlideShape(slide,618,96,10,10,"#8ba9c1","circle");
+                    addSlideText(slide,577,145,268,20,"YOUR PRODUCT, AT A GLANCE",11,muted,"700");
+                    addSlideShape(slide,578,182,124,96,"#dff1ec","rounded");
+                    addSlideShape(slide,720,182,139,96,"#f3e6d9","rounded");
+                    addSlideShape(slide,578,296,280,12,"#e9edf1","rounded");
+                    addSlideShape(slide,578,325,235,12,"#e9edf1","rounded");
+                    addSlideShape(slide,578,363,280,81,"#f4f7f8","rounded");
+                }else{
+                    addPageHeading(slide,page,index,ink);
+                    addSlideShape(slide,591,224,307,254,"#ffffff","rounded");
+                    addSlideText(slide,617,247,250,24,"A SIMPLE, USEFUL FLOW",12,accent,"700");
+                    bullets.forEach((text,item)=>{
+                        const top=229+item*77;
+                        addSlideShape(slide,65,top,478,61,"#ffffff","rounded");
+                        addSlideShape(slide,65,top,6,61,accent);
+                        addSlideText(slide,88,top+11,435,44,text,18,ink);
+                        addSlideShape(slide,621,top+11,210-item*33,10,["#b7e4dc","#bcd5ec","#f2d2a8"][item],"rounded");
+                    });
+                }
+            }else if(design==="stage"){
+                slide.background.color=cover?"#261b3a":"#221d36";
+                if(cover){
+                    addSlideShape(slide,636,45,290,290,"#38264d","circle");
+                    addSlideShape(slide,718,108,164,164,"#463058","circle");
+                    addSlideText(slide,0,84,960,27,template.name.toUpperCase()+"     ·     "+new Date().getFullYear(),13,"#e8a4bd","700","Arial","center");
+                    addSlideText(slide,90,174,780,156,page.title,59,"#ffffff","700","Arial","center");
+                    addSlideText(slide,145,357,670,62,page.subtitle,21,"#e0d5e8","400","Arial","center");
+                    addSlideShape(slide,430,460,100,4,accent);
+                }else{
+                    addSlideText(slide,72,42,250,108,String(index).padStart(2,"0"),78,accent,"700");
+                    addSlideText(slide,76,153,800,74,page.title,41,"#ffffff","700");
+                    addSlideText(slide,78,235,790,48,page.subtitle,19,"#cdc6dd");
+                    bullets.forEach((text,item)=>{
+                        const left=77+item*288;
+                        addSlideShape(slide,left,339,254,112,"#302643","rounded");
+                        addSlideText(slide,left+17,357,220,22,"POINT "+(item+1),12,"#edb0c3","700");
+                        addSlideText(slide,left+17,390,220,50,text,17,"#ffffff");
+                    });
+                }
+            }else if(design==="case-study"){
+                slide.background.color=cover?"#103438":"#f2f7f4";
+                if(cover){
+                    addSlideShape(slide,0,0,373,540,accent);
+                    addSlideText(slide,67,72,265,24,"CUSTOMER STORY     /     "+new Date().getFullYear(),12,"#ffffff","700");
+                    addSlideText(slide,66,177,278,145,page.title,42,"#ffffff","700");
+                    addSlideText(slide,431,111,460,86,"FROM FRICTION",15,"#9ad8c7","700");
+                    addSlideText(slide,425,166,475,103,"TO [RESULT]",46,"#ffffff","700");
+                    addSlideText(slide,432,318,440,65,page.subtitle,20,"#c8ded8");
+                    addSlideShape(slide,433,422,118,5,"#65c3ac");
+                }else{
+                    addSlideText(slide,68,44,820,20,"FIELD NOTE     /     "+template.name.toUpperCase(),12,accent,"700");
+                    addSlideText(slide,68,82,820,57,page.title,38,ink,"700");
+                    addSlideText(slide,70,151,820,42,page.subtitle,17,muted);
+                    addSlideShape(slide,68,225,387,245,"#ffffff","rounded");
+                    addSlideShape(slide,482,225,407,245,secondary,"rounded");
+                    addSlideText(slide,92,249,335,20,"BEFORE",13,accent,"700");
+                    addSlideText(slide,92,286,335,128,bullets[0]||"The old way left a costly gap.",22,ink,"700");
+                    addSlideText(slide,508,249,340,20,"AFTER",13,"#92e4cf","700");
+                    addSlideText(slide,508,286,340,128,bullets[1]||"The new way makes progress visible.",22,"#ffffff","700");
+                    addSlideText(slide,92,431,700,24,bullets[2]||"A verified result worth repeating.",15,muted);
+                }
+            }else if(design==="workshop"){
+                slide.background.color=cover?"#f4eadb":"#fbf6ec";
+                const noteColors=["#ffe48d","#bce7d4","#f5bfd1"];
+                if(cover){
+                    addSlideShape(slide,604,93,251,170,noteColors[0],"rounded",-4);
+                    addSlideShape(slide,659,275,230,151,noteColors[1],"rounded",3);
+                    addSlideShape(slide,752,89,97,78,noteColors[2],"rounded",5);
+                    addSlideText(slide,68,84,490,24,"A WORKING SESSION   /   "+template.name.toUpperCase(),12,accent,"700");
+                    addSlideText(slide,68,155,505,150,page.title,51,ink,"700");
+                    addSlideText(slide,72,327,475,69,page.subtitle,20,muted);
+                    addSlideText(slide,72,455,450,22,"LISTEN   ·   MAKE   ·   DECIDE",13,accent,"700");
+                }else{
+                    addSlideText(slide,63,39,820,21,"WORKSHOP   /   "+String(index+1).padStart(2,"0"),12,accent,"700");
+                    addSlideText(slide,63,77,820,55,page.title,37,ink,"700");
+                    addSlideText(slide,66,144,820,43,page.subtitle,17,muted);
+                    bullets.forEach((text,item)=>{
+                        const top=230+item*83;
+                        const c=noteColors[item%noteColors.length];
+                        addSlideShape(slide,68,top,805,66,c,"rounded",item===1?1:-1);
+                        addSlideText(slide,89,top+10,46,39,"0"+(item+1),18,accent,"700");
+                        addSlideText(slide,151,top+10,687,45,text,19,ink,"700");
+                    });
+                }
+            }else if(design==="data-editorial"){
+                slide.background.color="#fbfaf7";
+                if(cover){
+                    addSlideShape(slide,624,72,262,364,"#edf1f4","rounded");
+                    [92,145,208,274,337].forEach((height,item)=>{
+                        addSlideShape(slide,657+item*42,400-height,24,height,[accent,"#6684be","#91a6cf","#b7c4db","#d8dfeb"][item]);
+                    });
+                    addSlideText(slide,67,80,500,24,"ANNUAL REVIEW   /   "+new Date().getFullYear(),12,accent,"700","Georgia");
+                    addSlideText(slide,67,153,515,184,page.title,53,ink,"700","Georgia");
+                    addSlideText(slide,71,359,495,63,page.subtitle,19,muted,"400","Georgia");
+                    addSlideText(slide,653,421,208,20,"PROGRESS, IN PERSPECTIVE",10,muted,"700");
+                }else{
+                    addPageHeading(slide,page,index,ink,"Georgia");
+                    addSlideShape(slide,68,224,822,264,"#ffffff","rounded");
+                    bullets.forEach((text,item)=>{
+                        const left=98+item*261;
+                        const barHeight=[130,183,100][item];
+                        addSlideShape(slide,left+14,427-barHeight,47,barHeight,[accent,"#829ac5","#b7c3d7"][item]);
+                        addSlideText(slide,left,437,232,42,text,14,ink,"700","Georgia");
+                    });
+                    addSlideShape(slide,93,427,758,2,"#d9e0e5");
+                }
+            }else if(design==="mosaic"){
+                slide.background.color=cover?"#f7f1eb":"#faf7f1";
+                if(cover){
+                    addSlideShape(slide,550,48,340,205,accent,"rounded");
+                    addSlideShape(slide,550,270,157,198,secondary,"rounded");
+                    addSlideShape(slide,723,270,167,198,"#efb99d","rounded");
+                    addSlideShape(slide,674,91,86,86,"#f3d7a5","circle");
+                    addSlideText(slide,65,72,435,24,"PORTFOLIO   /   "+new Date().getFullYear(),12,accent,"700");
+                    addSlideText(slide,65,154,446,143,page.title,52,ink,"700");
+                    addSlideText(slide,68,324,430,72,page.subtitle,19,muted);
+                    addSlideText(slide,69,455,410,22,"SELECTED PROJECTS   ·   CREATIVE PRACTICE",11,ink,"700");
+                }else{
+                    addSlideShape(slide,601,0,359,540,accent);
+                    addSlideText(slide,66,53,490,20,"SELECTED PROJECT   /   "+String(index).padStart(2,"0"),12,accent,"700");
+                    addSlideText(slide,66,97,485,75,page.title,40,ink,"700");
+                    addSlideText(slide,68,185,474,58,page.subtitle,18,muted);
+                    bullets.forEach((text,item)=>{
+                        const top=282+item*61;
+                        addSlideShape(slide,70,top,482,49,"#ffffff","rounded");
+                        addSlideShape(slide,70,top,62,49,["#f3d7a5",secondary,"#efb99d"][item],"rounded");
+                        addSlideText(slide,150,top+9,380,36,text,17,ink);
+                    });
+                    addSlideText(slide,649,180,260,120,"IDEAS\nIN FORM",39,"#ffffff","700");
+                }
+            }else if(design==="notebook"){
+                slide.background.color="#f4f7f2";
+                if(cover){
+                    addSlideShape(slide,0,0,218,540,"#d9ebe2");
+                    addSlideShape(slide,189,0,4,540,accent);
+                    addSlideText(slide,62,83,108,24,"STUDY",14,accent,"700","Georgia");
+                    addSlideText(slide,62,144,117,76,"01",59,accent,"700","Georgia");
+                    addSlideText(slide,273,104,610,150,page.title,50,ink,"700","Georgia");
+                    addSlideText(slide,277,283,580,78,page.subtitle,21,muted,"400","Georgia");
+                    addSlideText(slide,279,438,520,26,"READ   ·   TRY   ·   DISCOVER",13,accent,"700","Georgia");
+                }else{
+                    addSlideShape(slide,0,0,194,540,"#e1efe7");
+                    addSlideShape(slide,190,0,3,540,accent);
+                    addSlideText(slide,39,48,126,20,"CHAPTER",12,accent,"700","Georgia");
+                    addSlideText(slide,39,82,130,86,String(index).padStart(2,"0"),55,ink,"700","Georgia");
+                    addSlideText(slide,39,198,130,146,template.name,17,muted,"700","Georgia");
+                    addSlideText(slide,238,53,660,58,page.title,35,ink,"700","Georgia");
+                    addSlideText(slide,240,119,650,52,page.subtitle,16,muted,"400","Georgia");
+                    bullets.forEach((text,item)=>{
+                        const top=226+item*76;
+                        addSlideText(slide,243,top,40,34,"✳",20,accent,"700","Georgia");
+                        addSlideText(slide,282,top,580,52,text,18,ink,"400","Georgia");
+                        addSlideShape(slide,240,top+58,630,1,"#dce7df");
+                    });
+                }
+            }else if(design==="timeline"){
+                slide.background.color=cover?"#102d37":"#f4f8f7";
+                if(cover){
+                    addSlideText(slide,68,71,800,23,"PRODUCT DIRECTION   /   "+new Date().getFullYear(),12,"#89d2cc","700");
+                    addSlideText(slide,68,141,820,115,page.title,51,"#ffffff","700");
+                    addSlideText(slide,72,270,790,55,page.subtitle,20,"#c5dbdc");
+                    addSlideShape(slide,95,409,770,3,"#54767c");
+                    ["NOW","NEXT","LATER"].forEach((label,item)=>{
+                        const left=110+item*351;
+                        addSlideShape(slide,left,397,26,26,item===0?accent:"#e9f1ee","circle");
+                        addSlideText(slide,left-5,444,160,23,label,14,"#ffffff","700");
+                    });
+                }else{
+                    addPageHeading(slide,page,index,ink);
+                    addSlideShape(slide,160,335,640,3,"#cbd9d8");
+                    bullets.forEach((text,item)=>{
+                        const left=95+item*305;
+                        addSlideShape(slide,left+38,322,25,25,accent,"circle");
+                        addSlideShape(slide,left,233,106,70,item===1?"#ffffff":soft,"rounded");
+                        addSlideText(slide,left+10,246,88,38,"0"+(item+1),23,accent,"700","Georgia","center");
+                        addSlideText(slide,left-16,370,164,83,text,16,ink,"700","Arial","center");
+                    });
+                }
+            }else if(design==="impact"){
+                slide.background.color=cover?"#192e3b":"#f5f8f6";
+                if(cover){
+                    addSlideText(slide,68,69,740,23,"PEOPLE   /   POSSIBILITY   /   PROGRESS",12,"#a7e3cc","700");
+                    addSlideText(slide,68,137,760,127,page.title,50,"#ffffff","700");
+                    addSlideText(slide,72,276,700,58,page.subtitle,20,"#d3e4df");
+                    ["PEOPLE","PARTNERS","POSSIBILITY"].forEach((label,item)=>{
+                        const left=77+item*286;
+                        addSlideShape(slide,left,399,114,5,[accent,"#e6b65e","#90d4ba"][item]);
+                        addSlideText(slide,left,420,190,23,label,12,"#ffffff","700");
+                    });
+                }else{
+                    addPageHeading(slide,page,index,ink);
+                    const metrics=["0,000","00%","00"];
+                    bullets.forEach((text,item)=>{
+                        const left=67+item*281;
+                        addSlideShape(slide,left,246,230,227,"#ffffff","rounded");
+                        addSlideShape(slide,left+70,273,90,90,[accent,"#e5ad57","#559d83"][item],"circle");
+                        addSlideText(slide,left+71,296,88,37,metrics[item]||"0",22,"#ffffff","700","Arial","center");
+                        addSlideText(slide,left+20,384,190,61,text,16,ink,"700","Arial","center");
+                    });
+                }
+            }else if(design==="architecture"){
+                slide.background.color=cover?"#f1ece1":"#f8f5ee";
+                if(cover){
+                    addSlideShape(slide,0,0,22,540,accent);
+                    addSlideShape(slide,646,65,227,406,"#e1d8c7");
+                    addSlideShape(slide,679,96,162,151,"#aeb9a9");
+                    addSlideShape(slide,679,267,162,169,"#d0a385");
+                    addSlideShape(slide,858,65,6,406,secondary);
+                    addSlideText(slide,71,78,510,22,"PROPERTY   /   "+new Date().getFullYear(),12,accent,"700");
+                    addSlideText(slide,71,154,514,155,page.title,47,ink,"700","Georgia");
+                    addSlideText(slide,76,333,510,77,page.subtitle,19,muted,"400","Georgia");
+                    addSlideText(slide,76,462,480,23,"SPACE TO LIVE   ·   ROOM TO GROW",11,accent,"700");
+                }else{
+                    addSlideText(slide,67,47,815,21,"SITE NOTES   /   "+template.name.toUpperCase(),11,accent,"700");
+                    addSlideText(slide,67,89,815,55,page.title,36,ink,"700","Georgia");
+                    addSlideText(slide,68,154,808,46,page.subtitle,17,muted,"400","Georgia");
+                    addSlideShape(slide,66,230,827,2,accent);
+                    bullets.forEach((text,item)=>{
+                        const left=69+item*276;
+                        addSlideShape(slide,left,268,250,177,"#ffffff");
+                        addSlideShape(slide,left,268,250,7,[accent,"#b88963","#899b89"][item]);
+                        addSlideText(slide,left+17,296,215,25,["01  /  PLAN","02  /  MATERIAL","03  /  DETAIL"][item],11,accent,"700");
+                        addSlideText(slide,left+17,336,215,91,text,18,ink,"400","Georgia");
+                    });
+                }
+            }else if(design==="campaign"){
+                slide.background.color=cover?accent:"#261f36";
+                if(cover){
+                    addSlideShape(slide,646,-88,397,390,"#fdbf68","circle");
+                    addSlideShape(slide,605,333,267,267,"#cf3e64","circle");
+                    addSlideText(slide,68,71,550,22,"CAMPAIGN PLAYBOOK    /    "+new Date().getFullYear(),12,"#fff2d2","700");
+                    addSlideText(slide,68,149,560,160,page.title,53,"#ffffff","700");
+                    addSlideText(slide,72,330,508,76,page.subtitle,20,"#ffead7");
+                    addSlideShape(slide,73,449,125,5,"#fdbf68");
+                }else{
+                    addSlideShape(slide,0,0,960,14,accent);
+                    addSlideText(slide,65,43,820,19,"CAMPAIGN SYSTEM   /   "+String(index).padStart(2,"0"),11,"#f3af72","700");
+                    addSlideText(slide,65,83,820,61,page.title,40,"#ffffff","700");
+                    addSlideText(slide,68,155,815,43,page.subtitle,16,"#cfc9d8");
+                    bullets.forEach((text,item)=>{
+                        const left=67+item*283;
+                        const color=["#f4a261","#67bdab","#c39cde"][item];
+                        addSlideShape(slide,left,245,250,226,"#332943","rounded");
+                        addSlideShape(slide,left+18,263,48,5,color,"rounded");
+                        addSlideText(slide,left+19,287,212,26,["01  /  REACH","02  /  CONNECT","03  /  MOVE"][item],11,color,"700");
+                        addSlideText(slide,left+19,331,211,114,text,19,"#ffffff","700");
+                    });
+                }
+            }else if(design==="lab"){
+                slide.background.color="#101c2d";
+                for(let x=0;x<=960;x+=40){
+                    addSlideShape(slide,x,0,1,540,"#1b2b3d");
+                }
+                for(let y=0;y<=540;y+=40){
+                    addSlideShape(slide,0,y,960,1,"#1b2b3d");
+                }
+                if(cover){
+                    addSlideShape(slide,675,82,205,205,"#163c49","circle");
+                    addSlideText(slide,68,72,790,23,"RESEARCH NOTE   /   "+new Date().getFullYear(),12,"#51d5b0","700","Courier New");
+                    addSlideText(slide,68,148,780,146,page.title,48,"#f1f6fa","700","Courier New");
+                    addSlideText(slide,72,324,750,58,page.subtitle,19,"#a9bdce","400","Courier New");
+                    addSlideText(slide,72,448,660,23,"HYPOTHESIS   →   TEST   →   EVIDENCE",12,"#51d5b0","700","Courier New");
+                }else{
+                    addSlideShape(slide,50,45,860,451,"#142337","rounded");
+                    addSlideText(slide,77,72,796,20,"LAB NOTE     /     [STUDY "+String(index).padStart(2,"0")+"]",12,"#51d5b0","700","Courier New");
+                    addSlideText(slide,77,112,790,54,page.title,34,"#f1f6fa","700","Courier New");
+                    addSlideText(slide,80,174,790,44,page.subtitle,16,"#a9bdce","400","Courier New");
+                    bullets.forEach((text,item)=>{
+                        const top=251+item*62;
+                        addSlideText(slide,80,top,48,33,"0"+(item+1),16,"#51d5b0","700","Courier New");
+                        addSlideText(slide,148,top,695,44,text,18,"#f1f6fa","400","Courier New");
+                    });
+                }
+            }else if(design==="celebration"){
+                slide.background.color="#fbf3e8";
+                if(cover){
+                    addSlideShape(slide,47,43,98,98,"#f0d2be","circle");
+                    addSlideShape(slide,800,54,84,84,"#d5e3d4","circle");
+                    addSlideShape(slide,770,378,123,123,"#edd2dc","circle");
+                    addSlideText(slide,60,118,840,21,"WITH LOVE   ·   "+new Date().getFullYear(),12,accent,"700","Georgia","center");
+                    addSlideText(slide,100,180,760,147,page.title,58,ink,"400","Georgia","center");
+                    addSlideText(slide,134,348,692,61,page.subtitle,20,muted,"400","Georgia","center");
+                    addSlideText(slide,300,465,360,24,"A DAY TO SHARE",13,accent,"700","Georgia","center");
+                }else{
+                    addSlideShape(slide,0,0,960,9,accent);
+                    addSlideText(slide,66,47,820,20,"THE DAY   /   "+String(index).padStart(2,"0"),11,accent,"700","Georgia");
+                    addSlideText(slide,66,95,820,64,page.title,41,ink,"400","Georgia");
+                    addSlideText(slide,69,177,815,48,page.subtitle,18,muted,"400","Georgia");
+                    bullets.forEach((text,item)=>{
+                        const top=255+item*70;
+                        addSlideShape(slide,72,top+6,12,12,["#d28ba0","#8baa87","#d5aa63"][item],"circle");
+                        addSlideText(slide,102,top,740,51,text,20,ink,"400","Georgia");
+                    });
+                    addSlideText(slide,68,484,820,20,"PLEASE MAKE YOURSELF AT HOME",11,accent,"700","Georgia");
+                }
+            }else if(design==="finance"){
+                slide.background.color="#f2f5f2";
+                if(cover){
+                    addSlideShape(slide,0,0,960,12,secondary);
+                    addSlideText(slide,68,62,690,23,"FINANCIAL REVIEW   /   "+new Date().getFullYear(),12,accent,"700");
+                    addSlideText(slide,68,124,730,119,page.title,51,ink,"700");
+                    addSlideText(slide,71,257,695,53,page.subtitle,19,muted);
+                    addSlideShape(slide,682,85,203,376,"#ffffff","rounded");
+                    [98,153,116,222,190].forEach((height,item)=>{
+                        addSlideShape(slide,708+item*31,414-height,18,height,item===3?"#c85d5d":accent);
+                    });
+                    addSlideShape(slide,703,414,158,2,"#d9e0da");
+                    addSlideText(slide,71,397,460,51,"REVENUE    ↑    MARGIN    →    CASH",12,secondary,"700");
+                }else{
+                    addPageHeading(slide,page,index,ink);
+                    addSlideShape(slide,65,223,830,270,"#ffffff","rounded");
+                    addSlideShape(slide,65,223,830,41,"#e6ede8","rounded");
+                    addSlideText(slide,84,234,280,19,"MEASURE",11,secondary,"700");
+                    addSlideText(slide,438,234,170,19,"PERIOD",11,secondary,"700");
+                    addSlideText(slide,635,234,200,19,"CHANGE",11,secondary,"700");
+                    bullets.forEach((text,item)=>{
+                        const top=280+item*64;
+                        addSlideText(slide,85,top,330,40,text,16,ink,"700");
+                        addSlideText(slide,443,top,162,35,["[0.0M]","[00%]","[0.0M]"][item],19,secondary,"700");
+                        addSlideText(slide,636,top,180,35,item===1?"− [0.0%]":"+ [0.0%]",17,item===1?"#bb5555":accent,"700");
+                        addSlideShape(slide,84,top+44,771,1,"#e6ece7");
+                    });
+                }
+            }else if(design==="travel"){
+                slide.background.color=cover?"#143347":"#edf5f2";
+                if(cover){
+                    addSlideShape(slide,536,47,368,429,"#397f91","rounded");
+                    addSlideShape(slide,680,79,120,120,"#f6cf85","circle");
+                    addSlideShape(slide,584,293,265,125,"#1c5966","circle");
+                    addSlideText(slide,66,73,445,24,"FIELD JOURNAL   /   "+new Date().getFullYear(),12,"#b8dfce","700");
+                    addSlideText(slide,66,142,440,145,page.title,49,"#ffffff","700","Georgia");
+                    addSlideText(slide,69,308,433,67,page.subtitle,20,"#d4e5e2","400","Georgia");
+                    addSlideText(slide,70,451,423,24,"COLLECT MOMENTS, NOT MILES",12,"#b8dfce","700");
+                }else{
+                    addPageHeading(slide,page,index,ink,"Georgia");
+                    addSlideShape(slide,647,216,251,280,"#397f90","rounded");
+                    addSlideShape(slide,710,250,88,88,"#f0c879","circle");
+                    addSlideText(slide,674,458,207,20,"POSTCARD "+String(index).padStart(2,"0"),10,"#ffffff","700");
+                    bullets.forEach((text,item)=>{
+                        const top=235+item*82;
+                        addSlideText(slide,67,top,38,28,"0"+(item+1),16,accent,"700","Georgia");
+                        addSlideText(slide,119,top,474,58,text,19,ink,"400","Georgia");
+                        addSlideShape(slide,119,top+62,470,1,"#d4e1dc");
+                    });
+                }
+            }else if(design==="grid-atlas"){
+                slide.background.color=cover?"#eeeae1":"#f8f6f0";
+                for(let x=0;x<=960;x+=48){
+                    addSlideShape(slide,x,0,1,540,"#dedbd2");
+                }
+                for(let y=0;y<=540;y+=48){
+                    addSlideShape(slide,0,y,960,1,"#dedbd2");
+                }
+                if(cover){
+                    addSlideShape(slide,570,65,292,397,"#ffffff","rounded");
+                    addSlideShape(slide,596,92,105,151,accent);
+                    addSlideShape(slide,715,92,111,151,"#d7d0bd");
+                    addSlideShape(slide,596,256,230,176,"#9da995");
+                    addSlideText(slide,65,67,459,22,"DESIGN ATLAS   /   "+new Date().getFullYear(),12,accent,"700");
+                    addSlideText(slide,65,142,461,153,page.title,48,ink,"700");
+                    addSlideText(slide,68,311,450,77,page.subtitle,19,muted);
+                    addSlideText(slide,69,453,430,24,"FORM   ·   LIGHT   ·   MATERIAL",12,accent,"700");
+                }else{
+                    addSlideShape(slide,50,54,860,428,"#faf9f5","rounded");
+                    addSlideText(slide,80,82,800,21,"SITE STUDY   /   "+String(index).padStart(2,"0"),11,accent,"700");
+                    addSlideText(slide,80,125,790,58,page.title,36,ink,"700");
+                    addSlideText(slide,82,192,780,43,page.subtitle,16,muted);
+                    addSlideShape(slide,501,256,2,180,"#d3cec0");
+                    addSlideShape(slide,82,256,377,180,"#e7e2d6","rounded");
+                    addSlideShape(slide,99,274,159,142,accent);
+                    addSlideShape(slide,274,274,169,66,"#c5bda9");
+                    addSlideShape(slide,274,352,169,64,"#99a691");
+                    bullets.forEach((text,item)=>{
+                        addSlideText(slide,535,258+item*56,325,45,text,16,ink,"700");
+                    });
+                }
             }
 
             return slide;
@@ -6773,6 +8164,7 @@ function createPresentationTemplate(templateId){
         width:SLIDE_WIDTH,
         height:SLIDE_HEIGHT,
         theme:"light",
+        designTheme:null,
         slides,
         activeSlide:0,
         zoom:100,
@@ -7261,6 +8653,35 @@ function pptxNotesSlideXml(notes){
 
 function pptxSlideXml(slide,slideIndex,dimensions){
 
+    const transitionXml={
+        "fade":'<p:fade/>',
+        "push-left":'<p:push dir="l"/>',
+        "push-right":'<p:push dir="r"/>',
+        "push-up":'<p:push dir="u"/>',
+        "push-down":'<p:push dir="d"/>',
+        "zoom-in":'<p:zoom dir="in"/>',
+        "zoom-out":'<p:zoom dir="out"/>',
+        "flip-x":'<p:blinds dir="vert"/>',
+        "flip-y":'<p:blinds dir="horz"/>',
+        "rotate":'<p:wheel spokes="8"/>',
+        "wipe-left":'<p:wipe dir="l"/>',
+        "wipe-right":'<p:wipe dir="r"/>',
+        "wipe-up":'<p:wipe dir="u"/>',
+        "wipe-down":'<p:wipe dir="d"/>',
+        "circle":'<p:circle/>',
+        "blur":'<p:dissolve/>',
+        "split-horizontal":'<p:split orient="horz" dir="in"/>',
+        "split-vertical":'<p:split orient="vert" dir="in"/>',
+        "swivel":'<p:newsflash/>',
+        "uncover":'<p:cover dir="l"/>'
+    };
+    const transition=Object.prototype.hasOwnProperty.call(
+        transitionXml,
+        slide.transition
+    )
+        ? `<p:transition spd="med" advClick="1">${transitionXml[slide.transition]}</p:transition>`
+        : "";
+
     const imageRels=[];
     const items=[];
     let nextId=2;
@@ -7427,6 +8848,7 @@ function pptxSlideXml(slide,slideIndex,dimensions){
                     </p:spTree>
                 </p:cSld>
                 <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+                ${transition}
             </p:sld>`
     };
 }
@@ -7869,6 +9291,36 @@ async function importPPTX(file){
             throw new Error(`Slide ${slideIndex+1} contains invalid XML.`);
         }
 
+        const transitionElement=slideXml.getElementsByTagNameNS(
+            "http://schemas.openxmlformats.org/presentationml/2006/main",
+            "transition"
+        )[0];
+        const transitionEffect=transitionElement
+            ? Array.from(transitionElement.children).find(
+                child=>child.namespaceURI===
+                    "http://schemas.openxmlformats.org/presentationml/2006/main"
+            )
+            : null;
+        const transitionDirection=transitionEffect?.getAttribute("dir");
+        const transitionIdByElement={
+            fade:"fade",
+            push:`push-${({l:"left",r:"right",u:"up",d:"down"})[transitionDirection]||"left"}`,
+            zoom:transitionDirection==="out"?"zoom-out":"zoom-in",
+            blinds:transitionDirection==="horz"?"flip-y":"flip-x",
+            wheel:"rotate",
+            wipe:`wipe-${({l:"left",r:"right",u:"up",d:"down"})[transitionDirection]||"left"}`,
+            circle:"circle",
+            dissolve:"blur",
+            split:transitionEffect?.getAttribute("orient")==="vert"
+                ? "split-vertical"
+                : "split-horizontal",
+            newsflash:"swivel",
+            cover:"uncover"
+        };
+        const importedTransition=transitionEffect
+            ? transitionIdByElement[transitionEffect.localName]||"none"
+            : "none";
+
         const importedSlide={
             id:uid("slide"),
             name:`Slide ${slideIndex+1}`,
@@ -7877,7 +9329,7 @@ async function importPPTX(file){
                 color:"#ffffff"
             },
             notes:"",
-            transition:"none",
+            transition:importedTransition,
             elements:[]
         };
 
@@ -9290,7 +10742,7 @@ document.getElementById(
     "input",
     e=>{
         setZoom(
-            Number(e.target.value)
+            Number(e.target.value)/getCanvasFitScale()
         );
     }
 );
@@ -9650,6 +11102,8 @@ window.addEventListener(
         ){
 
             renderPresentation();
+        }else{
+            applyZoom();
         }
     }
 );
