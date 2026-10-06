@@ -13,6 +13,7 @@
 <script src="azpace-auth.js"></script>
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
+<script src="azpace-native-files.js"></script>
 
 <style>
 *{
@@ -861,7 +862,7 @@ svg{
         <div class="brand">
             <div class="logo">N</div>
             <div class="brand-name">A-Notes</div>
-            <div class="brand-ext">.anotes</div>
+            <div class="brand-ext">.anote</div>
         </div>
 
         <div class="save-status">
@@ -871,14 +872,14 @@ svg{
 
         <div class="top-actions">
 
-            <button class="top-btn" id="openBtn" title="Open .anotes">
+            <button class="top-btn" id="openBtn" title="Open .anote">
                 <svg viewBox="0 0 24 24">
                     <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/>
                 </svg>
                 <span>Open</span>
             </button>
 
-            <button class="top-btn" id="saveBtn" title="Save .anotes">
+            <button class="top-btn" id="saveBtn" title="Save .anote">
                 <svg viewBox="0 0 24 24">
                     <path d="M5 3h11l3 3v15H5z"/>
                     <path d="M8 3v6h8V3M8 21v-7h8v7"/>
@@ -893,6 +894,14 @@ svg{
                     <path d="M5 21h14"/>
                 </svg>
                 <span>Export</span>
+            </button>
+
+            <button class="top-btn" id="workspaceExportBtn" title="Export all notes">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 7h16v13H4z"/>
+                    <path d="M8 7V4h8v3M8 12h8M8 16h5"/>
+                </svg>
+                <span>Export all</span>
             </button>
 
             <button class="top-btn" id="workspaceBtn" title="Back to workspace">
@@ -1252,14 +1261,14 @@ svg{
 
 <div class="drop-overlay" id="dropOverlay">
     <div class="drop-message">
-        Drop .anotes file to open
+        Drop an .anote file to open
     </div>
 </div>
 
 <input
     type="file"
     id="fileInput"
-    accept=".anotes"
+    accept=".anote"
     hidden
 >
 
@@ -2669,63 +2678,53 @@ document.querySelectorAll(".context-item")
 */
 
 function buildNoteFile(note){
-
-    const meta = {
-        id:note.id,
-        title:note.title,
-        folderId:note.folderId,
-        pinned:!!note.pinned,
-        archived:!!note.archived,
-        deleted:!!note.deleted,
-        createdAt:note.createdAt,
-        updatedAt:note.updatedAt
+    const timestamp=now();
+    const savedNote={
+        ...note,
+        title:String(note.title||"Untitled Note"),
+        content:sanitizeHTML(note.content||"")
     };
-
-    return [
-        "ANOTES",
-        "VERSION:1",
-        "TYPE:NOTE",
-        "ENCODING:BASE64",
-        "META",
-        encode64(JSON.stringify(meta)),
-        "END_META",
-        "CONTENT",
-        encode64(
-            sanitizeHTML(note.content || "")
-        ),
-        "END_CONTENT",
-        "END_ANOTES"
-    ].join("\n");
+    return AZpaceFiles.serialize(
+        "note",
+        {note:savedNote},
+        {
+            title:savedNote.title,
+            createdAt:Number.isFinite(Date.parse(savedNote.createdAt))
+                ? savedNote.createdAt
+                : timestamp,
+            modifiedAt:Number.isFinite(Date.parse(savedNote.updatedAt))
+                ? savedNote.updatedAt
+                : timestamp,
+            custom:{
+                id:savedNote.id,
+                folderId:savedNote.folderId,
+                pinned:!!savedNote.pinned,
+                archived:!!savedNote.archived,
+                deleted:!!savedNote.deleted
+            }
+        }
+    );
 }
 
 function buildWorkspaceFile(){
-
-    const meta = {
-        app:"A-Notes",
-        format:"ANOTES",
-        version:1,
-        type:"workspace",
-        exportedAt:now()
-    };
-
-    const data = {
-        folders:state.folders,
-        notes:state.notes
-    };
-
-    return [
-        "ANOTES",
-        "VERSION:1",
-        "TYPE:WORKSPACE",
-        "ENCODING:BASE64",
-        "META",
-        encode64(JSON.stringify(meta)),
-        "END_META",
-        "DATA",
-        encode64(JSON.stringify(data)),
-        "END_DATA",
-        "END_ANOTES"
-    ].join("\n");
+    const timestamp=now();
+    const firstCreatedAt=state.notes.find(note=>
+        note&&Number.isFinite(Date.parse(note.createdAt))
+    )?.createdAt;
+    return AZpaceFiles.serialize(
+        "notes-workspace",
+        {
+            workspace:{
+                folders:state.folders,
+                notes:state.notes
+            }
+        },
+        {
+            title:"A-Notes Workspace",
+            createdAt:firstCreatedAt||timestamp,
+            modifiedAt:timestamp
+        }
+    );
 }
 
 
@@ -2735,12 +2734,52 @@ function buildWorkspaceFile(){
 
 function parseAnotes(text){
 
+    if(text.trimStart().startsWith("{")){
+        const envelope=AZpaceFiles.parse(text);
+        if(envelope.kind==="note"){
+            const note=envelope.data.note;
+            if(
+                !note||
+                typeof note!=="object"||
+                typeof note.title!=="string"||
+                typeof note.content!=="string"
+            ){
+                throw new Error("The A-Zpace note data is invalid.");
+            }
+            return {
+                type:"note",
+                note:{
+                    ...note,
+                    title:envelope.metadata.title,
+                    createdAt:note.createdAt||envelope.metadata.createdAt,
+                    updatedAt:note.updatedAt||envelope.metadata.modifiedAt
+                }
+            };
+        }
+        if(envelope.kind==="notes-workspace"){
+            const workspace=envelope.data.workspace;
+            if(
+                !workspace||
+                !Array.isArray(workspace.notes)||
+                !Array.isArray(workspace.folders)
+            ){
+                throw new Error("The A-Zpace notes workspace data is invalid.");
+            }
+            return {
+                type:"workspace",
+                folders:workspace.folders,
+                notes:workspace.notes
+            };
+        }
+        throw new Error("This A-Zpace file is not a Notes document.");
+    }
+
     const lines =
         text.replace(/\r\n/g,"\n").split("\n");
 
     if(lines[0] !== "ANOTES"){
         throw new Error(
-            "This is not a valid .anotes file."
+            "This is not a valid legacy Notes file."
         );
     }
 
@@ -2841,6 +2880,10 @@ function parseNoteFile(lines){
         throw new Error(
             "The note metadata is corrupted."
         );
+    }
+
+    if(!meta||typeof meta!=="object"||Array.isArray(meta)){
+        throw new Error("The note metadata is invalid.");
     }
 
     let content;
@@ -3055,7 +3098,7 @@ async function importAnotesFile(file){
         console.error(error);
 
         alert(
-            "Could not import this .anotes file.\n\n" +
+            "Could not import this Notes file.\n\n" +
             (error instanceof Error ? error.message : String(error))
         );
     }
@@ -3092,8 +3135,8 @@ async function openAnotes(){
                         {
                             description:"A-Notes file",
                             accept:{
-                                "application/x-anotes":[
-                                    ".anotes"
+                                "application/vnd.azpace.native+json":[
+                                        ".anote"
                                 ]
                             }
                         }
@@ -3141,7 +3184,7 @@ function downloadText(
         new Blob(
             [text],
             {
-                type:"application/x-anotes"
+                type:"application/vnd.azpace.native+json"
             }
         );
 
@@ -3184,7 +3227,7 @@ async function saveCurrentAsAnotes(){
 
     const filename =
         sanitizeFileName(note.title) +
-        ".anotes";
+        ".anote";
 
     if("showSaveFilePicker" in window){
 
@@ -3197,8 +3240,8 @@ async function saveCurrentAsAnotes(){
                         {
                             description:"A-Notes file",
                             accept:{
-                                "application/x-anotes":[
-                                    ".anotes"
+                                "application/vnd.azpace.native+json":[
+                                        ".anote"
                                 ]
                             }
                         }
@@ -3250,6 +3293,9 @@ document.getElementById("exportBtn")
     saveCurrentAsAnotes
 );
 
+document.getElementById("workspaceExportBtn")
+.addEventListener("click",exportWorkspace);
+
 document.getElementById("workspaceBtn")
 .addEventListener(
     "click",
@@ -3268,7 +3314,7 @@ function exportWorkspace(){
 
     downloadText(
         content,
-        "A-Notes-Workspace.anotes"
+        "A-Notes-Workspace.anote"
     );
 }
 
@@ -3316,14 +3362,14 @@ document.addEventListener("drop",event=>{
         [...event.dataTransfer.files]
         .find(
             f =>
-                f.name.toLowerCase().endsWith(".anotes")
+                f.name.toLowerCase().endsWith(".anote")
         );
 
     if(file){
         importAnotesFile(file);
     }else{
         alert(
-            "Please drop an .anotes file."
+            "Please drop an .anote file."
         );
     }
 });

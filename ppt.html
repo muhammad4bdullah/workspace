@@ -12,6 +12,7 @@
 <script src="azpace-auth.js"></script>
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
+<script src="azpace-native-files.js"></script>
 
 <style>
 :root{
@@ -1024,7 +1025,7 @@ body.dark .inspector-action:hover{
    RESPONSIVE
 ========================================================= */
 
-@media(max-width:950px){
+@media(max-width:1150px){
     .left-panel{
         width:180px;
     }
@@ -1244,6 +1245,41 @@ body.dark .inspector-action:hover{
         }
     }
 
+    .menubar .menu > button,
+    .toolbar-btn,
+    .icon-btn,
+    .primary-btn{
+        transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+    }
+
+    .menubar .menu > button:focus-visible,
+    .toolbar-btn:focus-visible,
+    .icon-btn:focus-visible,
+    .primary-btn:focus-visible,
+    .dropdown button:focus-visible{
+        outline:2px solid var(--accent);
+        outline-offset:2px;
+    }
+
+    .dropdown{
+        border-radius:10px;
+        box-shadow:0 12px 32px rgba(15,23,42,.14);
+    }
+
+    .dropdown button{
+        min-height:36px;
+        border-radius:7px;
+    }
+
+    @media(prefers-reduced-motion:reduce){
+        .menubar .menu > button,
+        .toolbar-btn,
+        .icon-btn,
+        .primary-btn{
+            transition:none;
+        }
+    }
+
 </style>
 </head>
 
@@ -1326,7 +1362,7 @@ body.dark .inspector-action:hover{
                 </button>
 
                 <button data-action="open-json">
-                    <span>Open presentation (.pptx or .slides.json)</span>
+                    <span>Open presentation (.azps or .pptx)</span>
                     <span class="shortcut">Ctrl+O</span>
                 </button>
 
@@ -1342,15 +1378,11 @@ body.dark .inspector-action:hover{
                 <div class="separator"></div>
 
                 <button data-action="export-json">
-                    <span>Export editable backup (.slides.json)</span>
+                    <span>Export A-Zpace presentation (.azps)</span>
                 </button>
 
                 <button data-action="export-pptx" data-azpace-pro="slides_pptx_export">
-                    <span>Download PowerPoint (.pptx)</span>
-                </button>
-
-                <button data-action="export-png" data-azpace-pro="slides_png_export">
-                    <span>Export current slide PNG</span>
+                    <span>Export PowerPoint (.pptx)</span>
                 </button>
 
                 <button data-action="print">
@@ -1883,7 +1915,7 @@ body.dark .inspector-action:hover{
 <input
     type="file"
     id="openInput"
-    accept=".pptx,.json,.slides"
+    accept=".azps,.pptx,.json,.slides"
     hidden
 >
 
@@ -1997,6 +2029,8 @@ const SLIDE_HEIGHT = 540;
 
 let state = {
     name: "Untitled Presentation",
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
 
     width: SLIDE_WIDTH,
     height: SLIDE_HEIGHT,
@@ -2519,6 +2553,8 @@ function save(){
             "presentationName"
         ).value || "Untitled Presentation";
 
+    state.createdAt=state.createdAt||new Date().toISOString();
+    state.modifiedAt=new Date().toISOString();
     localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(state)
@@ -6771,6 +6807,9 @@ function handleAction(action){
             exportJSON();
             break;
 
+        case"export-legacy-json":
+            exportLegacyJSON();
+            break;
         case"export-pptx":
             exportPPTX();
             break;
@@ -8231,6 +8270,8 @@ function newPresentation(){
 
             state={
                 name:"Untitled Presentation",
+                createdAt:new Date().toISOString(),
+                modifiedAt:new Date().toISOString(),
                 width:960,
                 height:540,
                 theme:state.theme,
@@ -8292,6 +8333,24 @@ function exportJSON(){
 
     save();
 
+    AZpaceFiles.download(
+        "presentation",
+        state,
+        {
+            title:state.name,
+            createdAt:state.createdAt,
+            modifiedAt:state.modifiedAt,
+            author:state.metadata?.author||""
+        },
+        safeFilename(state.name)+".azps"
+    );
+    toast("Saved A-Zpace presentation (.azps)");
+}
+
+function exportLegacyJSON(){
+
+    save();
+
     const blob=
         new Blob(
             [
@@ -8308,9 +8367,7 @@ function exportJSON(){
 
     downloadBlob(
         blob,
-        safeFilename(
-            state.name
-        )+".slides.json"
+        safeFilename(state.name)+".slides.json"
     );
 
     toast("Presentation exported");
@@ -9767,16 +9824,34 @@ document.getElementById(
 
         try{
 
-            const imported=
-                /\.pptx$/i.test(file.name)
-                    ? await importPPTX(file)
-                    : JSON.parse(await file.text());
+            let imported;
+            if(/\.pptx$/i.test(file.name)){
+                imported=await importPPTX(file);
+            }else if(/\.azps$/i.test(file.name)){
+                const envelope=AZpaceFiles.parse(
+                    await file.text(),
+                    "presentation"
+                );
+                if(
+                    !envelope.data.state||
+                    typeof envelope.data.state!=="object"||
+                    Array.isArray(envelope.data.state)
+                ){
+                    throw new Error("The A-Zpace presentation data is invalid.");
+                }
+                imported={...envelope.data.state};
+                imported.createdAt=envelope.metadata.createdAt;
+                imported.modifiedAt=envelope.metadata.modifiedAt;
+            }else{
+                imported=JSON.parse(await file.text());
+            }
 
             if(
                 !imported ||
                 !Array.isArray(
                     imported.slides
-                )
+                ) ||
+                !imported.slides.length
             ){
 
                 throw new Error(

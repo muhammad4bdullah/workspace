@@ -11,6 +11,7 @@
 <script src="azpace-auth.js"></script>
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
+<script src="azpace-native-files.js"></script>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
@@ -140,7 +141,8 @@ button:disabled{
   position:absolute;
   left:0;
   top:37px;
-  min-width:205px;
+  min-width:250px;
+  max-width:calc(100vw - 16px);
   padding:5px;
   z-index:1000;
   background:var(--panel);
@@ -701,6 +703,54 @@ body.dark{
     padding:0 6px;
   }
 }
+
+.menu>button:focus-visible,
+.top-button:focus-visible,
+.menu-popup button:focus-visible,
+.toolbar button:focus-visible,
+.toolbar select:focus-visible,
+.formula-bar input:focus-visible,
+.tabsbar button:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+.menu>button,
+.top-button,
+.menu-popup button,
+.toolbar button,
+.toolbar select{
+  transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+
+.menu-popup{
+  padding:7px;
+  border-radius:11px;
+  box-shadow:0 14px 36px rgba(15,23,42,.14);
+}
+
+.menu-popup button{
+  min-height:35px;
+  border-radius:7px;
+}
+
+.toolbar button{
+  border:1px solid transparent;
+}
+
+.toolbar button:hover{
+  border-color:var(--line);
+}
+
+@media(prefers-reduced-motion:reduce){
+  .menu>button,
+  .top-button,
+  .menu-popup button,
+  .toolbar button,
+  .toolbar select{
+    transition:none;
+  }
+}
 </style>
 </head>
 
@@ -738,34 +788,36 @@ body.dark{
           New spreadsheet
         </button>
 
-        <button data-action="open-csv">
-          Open CSV…
+        <button data-action="open-azss">
+          Open A-Zpace spreadsheet (.azss)
         </button>
 
         <button data-action="open-xlsx">
-          Open XLSX…
+          Open Excel workbook (.xlsx)
         </button>
+
+        <button data-action="open-csv">
+          Open CSV file (.csv)
+        </button>
+
+        <hr>
 
         <button data-action="save">
           Save to account
         </button>
 
-        <button data-action="export-csv">
-          Download CSV
-        </button>
-
-        <button data-action="export-xlsx" data-azpace-pro="sheets_xlsx_export">
-          Download XLSX
-        </button>
-
-        <button data-action="print">
-          Print
+        <button data-action="save-azss">
+          Save A-Zpace spreadsheet (.azss)
         </button>
 
         <hr>
 
-        <button data-action="fullscreen">
-          Fullscreen
+        <button data-action="export-csv">
+          Export CSV (.csv)
+        </button>
+
+        <button data-action="export-xlsx" data-azpace-pro="sheets_xlsx_export">
+          Export Excel workbook (.xlsx)
         </button>
 
       </div>
@@ -1261,6 +1313,7 @@ body.dark{
 
 <input id="xlsxInput" type="file" accept=".xlsx,.xls" hidden="">
 
+<input id="azssInput" type="file" accept=".azss,application/vnd.azpace.native+json" hidden="">
 <script>
 "use strict";
 
@@ -1364,6 +1417,8 @@ const FUNCTION_NAMES=Object.keys(FUNCTION_INFO).sort();
 
 let state={
   name:"Untitled Spreadsheet",
+  createdAt:new Date().toISOString(),
+  modifiedAt:new Date().toISOString(),
   activeSheet:0,
 
   sheets:[
@@ -1644,6 +1699,8 @@ function redo(){
 
 function save(){
 
+  state.createdAt=state.createdAt||new Date().toISOString();
+  state.modifiedAt=new Date().toISOString();
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
@@ -1725,6 +1782,12 @@ function load(){
       data.state.sheets.length
     ){
       state=data.state;
+    }
+    if(!state.createdAt){
+      state.createdAt=new Date().toISOString();
+    }
+    if(!state.modifiedAt){
+      state.modifiedAt=state.createdAt;
     }
 
     frozen=Boolean(data.frozen);
@@ -5641,6 +5704,84 @@ function loadArrayIntoSheet(
 
 }
 
+async function openAZSSFile(file){
+  try{
+    const envelope=AZpaceFiles.parse(
+      await file.text(),
+      "spreadsheet"
+    );
+    const workbook=envelope.data.workbook;
+    if(
+      !workbook||
+      typeof workbook.name!=="string"||
+      !Array.isArray(workbook.sheets)||
+      !workbook.sheets.length||
+      !Number.isInteger(workbook.activeSheet)||
+      workbook.activeSheet<0||
+      workbook.activeSheet>=workbook.sheets.length||
+      workbook.sheets.some(sheet=>
+        !sheet||
+        typeof sheet!=="object"||
+        typeof sheet.name!=="string"||
+        !sheet.cells||
+        typeof sheet.cells!=="object"||
+        Array.isArray(sheet.cells)||
+        !sheet.columnWidths||
+        typeof sheet.columnWidths!=="object"||
+        Array.isArray(sheet.columnWidths)||
+        !Array.isArray(sheet.merged)
+      )
+    ){
+      throw new Error("The A-Zpace spreadsheet data is invalid.");
+    }
+    if(
+      !Number.isFinite(envelope.data.zoom)||
+      typeof envelope.data.frozen!=="boolean"||
+      typeof envelope.data.gridlines!=="boolean"||
+      typeof envelope.data.dark!=="boolean"
+    ){
+      throw new Error("The A-Zpace spreadsheet view settings are invalid.");
+    }
+
+    state=workbook;
+    state.createdAt=envelope.metadata.createdAt;
+    state.modifiedAt=envelope.metadata.modifiedAt;
+    frozen=Boolean(envelope.data.frozen);
+    zoom=Math.max(60,Math.min(160,envelope.data.zoom));
+    gridlines=envelope.data.gridlines!==false;
+    document.body.classList.toggle("dark",Boolean(envelope.data.dark));
+    selected={row:0,col:0};
+    anchor={row:0,col:0};
+    rangeEnd={row:0,col:0};
+    renderAll();
+    save();
+    toast("A-Zpace spreadsheet opened");
+  }catch(error){
+    console.error("Could not open A-Zpace spreadsheet",error);
+    toast("Could not open spreadsheet: "+error.message);
+  }
+}
+
+function saveAZPSFile(){
+  save();
+  AZpaceFiles.download(
+    "spreadsheet",
+    {
+      workbook:state,
+      frozen,
+      zoom,
+      gridlines,
+      dark:document.body.classList.contains("dark")
+    },
+    {
+      title:state.name,
+      createdAt:state.createdAt,
+      modifiedAt:state.modifiedAt
+    },
+    (state.name||"Untitled Spreadsheet").replace(/[<>:"/\\|?*]/g,"_")+".azss"
+  );
+}
+
 function openCSVFile(file){
 
   const reader=
@@ -6171,6 +6312,8 @@ function newSpreadsheet(){
 
   state={
     name:"Untitled Spreadsheet",
+    createdAt:new Date().toISOString(),
+    modifiedAt:new Date().toISOString(),
     activeSheet:0,
 
     sheets:[
@@ -6438,9 +6581,17 @@ function runAction(
       $("xlsxInput").click();
       break;
 
+    case"open-azss":
+      $("azssInput").click();
+      break;
+
     case"save":
       save();
       toast("Saved locally; syncing to your account");
+      break;
+
+    case"save-azss":
+      saveAZPSFile();
       break;
 
     case"export-csv":
@@ -6748,6 +6899,20 @@ $("xlsxInput").addEventListener(
 
     event.target.value="";
 
+  }
+);
+
+$("azssInput").addEventListener(
+  "change",
+  async event=>{
+    const file=event.target.files[0];
+    try{
+      if(file){
+        await openAZSSFile(file);
+      }
+    }finally{
+      event.target.value="";
+    }
   }
 );
 
