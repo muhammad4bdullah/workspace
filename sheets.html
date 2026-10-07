@@ -12,6 +12,7 @@
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
 <script src="azpace-native-files.js"></script>
+<script src="azpace-file-handoff.js"></script>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
@@ -5706,11 +5707,33 @@ function loadArrayIntoSheet(
 
 async function openAZSSFile(file){
   try{
-    const envelope=AZpaceFiles.parse(
-      await file.text(),
-      "spreadsheet"
-    );
-    const workbook=envelope.data.workbook;
+    const serialized=await file.text();
+    const payload=JSON.parse(serialized);
+    let workbook;
+    let metadata={};
+    let viewSettings;
+    if(payload?.format==="AZPACE"){
+      const envelope=AZpaceFiles.parse(
+        serialized,
+        "spreadsheet"
+      );
+      workbook=envelope.data.workbook;
+      metadata=envelope.metadata;
+      viewSettings=envelope.data;
+    }else if(
+      payload?.format==="azss"&&
+      payload.version===1&&
+      payload.workbook?.state
+    ){
+      workbook=payload.workbook.state;
+      metadata={
+        createdAt:workbook.createdAt,
+        modifiedAt:workbook.modifiedAt
+      };
+      viewSettings=payload.workbook;
+    }else{
+      throw new Error("Unsupported A-Zpace spreadsheet file format.");
+    }
     if(
       !workbook||
       typeof workbook.name!=="string"||
@@ -5735,21 +5758,23 @@ async function openAZSSFile(file){
       throw new Error("The A-Zpace spreadsheet data is invalid.");
     }
     if(
-      !Number.isFinite(envelope.data.zoom)||
-      typeof envelope.data.frozen!=="boolean"||
-      typeof envelope.data.gridlines!=="boolean"||
-      typeof envelope.data.dark!=="boolean"
+      !viewSettings||
+      !Number.isFinite(viewSettings.zoom)||
+      typeof viewSettings.frozen!=="boolean"||
+      typeof viewSettings.gridlines!=="boolean"||
+      (viewSettings.dark!==undefined&&
+        typeof viewSettings.dark!=="boolean")
     ){
       throw new Error("The A-Zpace spreadsheet view settings are invalid.");
     }
 
     state=workbook;
-    state.createdAt=envelope.metadata.createdAt;
-    state.modifiedAt=envelope.metadata.modifiedAt;
-    frozen=Boolean(envelope.data.frozen);
-    zoom=Math.max(60,Math.min(160,envelope.data.zoom));
-    gridlines=envelope.data.gridlines!==false;
-    document.body.classList.toggle("dark",Boolean(envelope.data.dark));
+    state.createdAt=metadata.createdAt||state.createdAt;
+    state.modifiedAt=metadata.modifiedAt||state.modifiedAt;
+    frozen=Boolean(viewSettings.frozen);
+    zoom=Math.max(60,Math.min(160,viewSettings.zoom));
+    gridlines=viewSettings.gridlines!==false;
+    document.body.classList.toggle("dark",Boolean(viewSettings.dark));
     selected={row:0,col:0};
     anchor={row:0,col:0};
     rangeEnd={row:0,col:0};
@@ -7467,6 +7492,24 @@ window.AZpaceAuth.ready.then(session => {
   if (!session) return;
   load();
   renderAll();
+  window.AZpaceFileHandoff.consumePendingFile()
+    .then(async file => {
+      if(!file)
+        return;
+      const extension=file.name.split(".").pop().toLowerCase();
+      if(extension==="azss")
+        await openAZSSFile(file);
+      else if(extension==="xlsx" || extension==="xls")
+        openXLSXFile(file);
+      else if(extension==="csv" || extension==="txt")
+        openCSVFile(file);
+      else
+        throw new Error(`Unsupported spreadsheet file: .${extension}`);
+    })
+    .catch(error => {
+      console.error("Could not open the workspace file:",error);
+      toast(error.message);
+    });
 });
 
 </script>

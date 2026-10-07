@@ -14,6 +14,7 @@
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
 <script src="azpace-native-files.js"></script>
+<script src="azpace-file-handoff.js"></script>
 
 <style id="printPageStyle"></style>
 <style>
@@ -5259,11 +5260,36 @@ async function openDocumentFile(file){
         let html;
         let importedRecord=null;
         if(extension === "azdc" || extension === "axdc"){
-            const envelope=AZpaceFiles.parse(
-                await file.text(),
-                "document"
-            );
-            const source=envelope.data.document;
+            const serialized=await file.text();
+            const raw=JSON.parse(serialized);
+            let source;
+            let metadata;
+            if(raw?.format==="AZPACE"){
+                const envelope=AZpaceFiles.parse(
+                    serialized,
+                    "document"
+                );
+                source=envelope.data.document;
+                metadata=envelope.metadata;
+            }else if(
+                raw?.format==="azdc"&&
+                raw.version===1&&
+                raw.document&&
+                typeof raw.document==="object"
+            ){
+                source=raw.document;
+                metadata={
+                    title:source.title,
+                    createdAt:source.createdAt,
+                    modifiedAt:source.modifiedAt,
+                    author:source.metadata?.author||"",
+                    subject:source.metadata?.subject||"",
+                    keywords:source.metadata?.keywords||"",
+                    comments:source.metadata?.comments||""
+                };
+            }else{
+                throw new Error("Unsupported A-Zpace document file format.");
+            }
             if(
                 !source||
                 typeof source!=="object"||
@@ -5278,14 +5304,14 @@ async function openDocumentFile(file){
             importedRecord={
                 ...source,
                 id:createDocumentId(),
-                title:envelope.metadata.title,
-                createdAt:envelope.metadata.createdAt,
-                modifiedAt:envelope.metadata.modifiedAt,
+                title:metadata.title||source.title,
+                createdAt:metadata.createdAt||source.createdAt,
+                modifiedAt:metadata.modifiedAt||source.modifiedAt,
                 metadata:{
-                    author:envelope.metadata.author,
-                    subject:envelope.metadata.subject,
-                    keywords:envelope.metadata.keywords,
-                    comments:envelope.metadata.comments,
+                    author:metadata.author,
+                    subject:metadata.subject,
+                    keywords:metadata.keywords,
+                    comments:metadata.comments,
                     ...(source.metadata||{})
                 }
             };
@@ -6519,7 +6545,17 @@ document.addEventListener("click", event => {
 ================================================== */
 
 window.AZpaceAuth.ready.then(session => {
-    if (session) loadLocal();
+    if(!session) return;
+    loadLocal();
+    window.AZpaceFileHandoff.consumePendingFile()
+        .then(file => {
+            if(file)
+                openDocumentFile(file);
+        })
+        .catch(error => {
+            console.error("Could not open the workspace file:",error);
+            showToast(error.message);
+        });
 });
 
 updateNavigation();

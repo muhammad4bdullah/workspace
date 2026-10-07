@@ -12,6 +12,7 @@
 <script src="azpace-auth.js"></script>
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
+<script src="azpace-file-handoff.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
@@ -55,9 +56,10 @@ body{
 
 .app{
     height:100vh;
+    height:100dvh;
     min-height:0;
     display:grid;
-    grid-template-rows:54px 48px 1fr 29px;
+    grid-template-rows:54px 48px minmax(0,1fr) 29px;
 }
 
 /* -------------------------------------------------------
@@ -218,6 +220,8 @@ svg.icon{
 
 .main{
     min-height:0;
+    min-width:0;
+    overflow:hidden;
     display:grid;
     grid-template-columns:230px minmax(0,1fr) 270px;
 }
@@ -228,6 +232,7 @@ svg.icon{
 
 .pages-panel{
     min-width:0;
+    min-height:0;
     background:#fff;
     border-right:1px solid var(--border);
     display:flex;
@@ -275,11 +280,14 @@ svg.icon{
 
 .thumbnails{
     flex:1;
+    min-height:0;
+    min-width:0;
     overflow:auto;
     padding:12px;
 }
 
 .thumb{
+    min-width:0;
     padding:6px;
     margin-bottom:11px;
     border:1px solid transparent;
@@ -307,8 +315,10 @@ svg.icon{
 
 .thumb canvas{
     display:block;
-    width:100%;
-    height:auto;
+    width:100% !important;
+    height:auto !important;
+    max-height:190px;
+    object-fit:contain;
     background:#fff;
     box-shadow:0 1px 4px rgba(0,0,0,.14);
 }
@@ -327,6 +337,7 @@ svg.icon{
 .center{
     min-width:0;
     min-height:0;
+    overflow:hidden;
     display:flex;
     flex-direction:column;
     background:#e7e7e5;
@@ -402,6 +413,7 @@ svg.icon{
     min-height:0;
     overflow:auto;
     overscroll-behavior:contain;
+    overflow:auto;
     padding:34px;
     position:relative;
 }
@@ -623,6 +635,63 @@ input[type="range"]{
 .search-row{
     display:flex;
     gap:6px;
+    align-items:center;
+}
+
+.search-options,
+.search-navigation{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:8px;
+}
+
+.search-options .form-label{
+    margin:0;
+    white-space:nowrap;
+}
+
+.search-navigation{
+    justify-content:space-between;
+}
+
+.search-count{
+    color:var(--muted);
+    font-size:12px;
+}
+
+.search-results{
+    display:grid;
+    gap:4px;
+    margin-top:8px;
+    max-height:240px;
+    overflow:auto;
+}
+
+.search-result{
+    width:100%;
+    padding:7px 8px;
+    border:1px solid transparent;
+    border-radius:4px;
+    background:#f7f5f1;
+    color:var(--text);
+    text-align:left;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.search-result:hover,
+.search-result[aria-current="true"]{
+    border-color:var(--accent);
+    background:#fff0c2;
+}
+
+.search-result-page{
+    display:block;
+    margin-bottom:2px;
+    color:var(--accent);
+    font-size:11px;
+    font-weight:700;
 }
 
 .search-input{
@@ -641,6 +710,11 @@ input[type="range"]{
     color:#fff;
     padding:0 11px;
     cursor:pointer;
+}
+
+.search-button:disabled{
+    opacity:.5;
+    cursor:default;
 }
 
 /* -------------------------------------------------------
@@ -727,6 +801,7 @@ input[type="range"]{
 .page-container[data-tool="rectangle"] .annotation-layer,
 .page-container[data-tool="ellipse"] .annotation-layer,
 .page-container[data-tool="arrow"] .annotation-layer,
+.page-container[data-tool="redact"] .annotation-layer,
 .page-container[data-tool="note"] .annotation-layer,
 .page-container[data-tool="stamp"] .annotation-layer,
 .page-container[data-tool="signature"] .annotation-layer{
@@ -737,8 +812,14 @@ input[type="range"]{
 .page-container[data-tool="draw"] .annotation-layer,
 .page-container[data-tool="rectangle"] .annotation-layer,
 .page-container[data-tool="ellipse"] .annotation-layer,
-.page-container[data-tool="arrow"] .annotation-layer{
+.page-container[data-tool="arrow"] .annotation-layer,
+.page-container[data-tool="redact"] .annotation-layer{
     touch-action:none;
+}
+
+.redaction-box{
+    border:1px solid #9f4738;
+    background:#000;
 }
 
 .pdf-text-target{
@@ -749,6 +830,16 @@ input[type="range"]{
     color:transparent;
     -webkit-text-fill-color:transparent;
     user-select:none;
+}
+
+.pdf-text-target.search-hit{
+    background:rgba(255,211,75,.52);
+    outline:1px solid rgba(183,119,0,.45);
+}
+
+.pdf-text-target.search-hit-active{
+    background:rgba(255,146,54,.68);
+    outline:2px solid rgba(159,71,56,.8);
 }
 
 .page-container[data-tool="edit"] .pdf-text-target{
@@ -861,15 +952,42 @@ input[type="range"]{
 
 @media(max-width:700px){
     .pages-panel{
-        display:none;
+        min-height:0;
+        border-right:0;
+        border-bottom:1px solid var(--border);
     }
 
     .main{
         grid-template-columns:1fr;
+        grid-template-rows:150px minmax(0,1fr);
+    }
+
+    .panel-header{
+        height:38px;
+        min-height:38px;
+    }
+
+    .thumbnails{
+        display:flex;
+        align-items:flex-start;
+        gap:8px;
+        overflow-x:auto;
+        overflow-y:hidden;
+        padding:7px 10px;
+    }
+
+    .thumb{
+        flex:0 0 88px;
+        margin:0;
+        padding:4px;
+    }
+
+    .thumb canvas{
+        max-height:82px;
     }
 
     .document-view{
-        padding:15px;
+        padding:12px;
     }
 
     .brand{
@@ -1009,6 +1127,10 @@ input[type="range"]{
             Draw
         </button>
 
+        <button class="ribbon-button" id="redactBtn" data-tool="redact">
+            Redact
+        </button>
+
         <button class="ribbon-button" data-tool="rectangle">
             Rectangle
         </button>
@@ -1095,6 +1217,10 @@ input[type="range"]{
                 <path d="m11 8 5 5"/>
             </svg>
             Merge
+        </button>
+
+        <button class="ribbon-button" id="insertPagesBtn">
+            Insert Pages
         </button>
 
     </div>
@@ -1315,8 +1441,11 @@ input[type="range"]{
 
             <p class="property-help">
                 Choose Edit, then click selectable PDF text to replace it.
-                Replacements visually cover text but do not erase its
-                underlying data; styling and paragraph reflow are limited.
+                Export uses the local PDFium engine to replace or remove an
+                entire original text object. Partial-object or ambiguous edits
+                fail rather than silently falling back to a visual cover.
+                Paragraph reflow and arbitrary font substitution are not
+                supported.
             </p>
 
         </div>
@@ -1340,6 +1469,46 @@ input[type="range"]{
 
             <button class="property-button" id="duplicateMarkBtn" disabled>
                 Duplicate selected mark
+            </button>
+
+            <label class="form-label" for="markObjectWidth">Width</label>
+            <input class="property-control" id="markObjectWidth" type="number" min="1" step="1">
+
+            <label class="form-label" for="markHeight">Height</label>
+            <input class="property-control" id="markHeight" type="number" min="1" step="1">
+
+            <label class="form-label" for="markOpacity">Opacity</label>
+            <input class="property-control" id="markOpacity" type="number" min="0" max="1" step=".05">
+
+            <label class="form-label" for="markRotation">Rotation (images/shapes)</label>
+            <input class="property-control" id="markRotation" type="number" step="1">
+            <label class="form-label"><input id="markFillEnabled" type="checkbox"> Fill shape</label>
+            <label class="form-label" for="markFillColor">Fill color</label>
+            <input class="property-control" id="markFillColor" type="color" value="#ffffff">
+
+            <label class="form-label" for="markTextSize">Text size</label>
+            <input class="property-control" id="markTextSize" type="number" min="4" step="1">
+            <label class="form-label" for="markFontFamily">Text font (added text only)</label>
+            <select class="property-control" id="markFontFamily">
+                <option value="Helvetica">Helvetica</option>
+                <option value="TimesRoman">Times New Roman</option>
+                <option value="Courier">Courier</option>
+            </select>
+            <label class="form-label"><input id="markBold" type="checkbox"> Bold</label>
+            <label class="form-label"><input id="markItalic" type="checkbox"> Italic</label>
+            <label class="form-label"><input id="markUnderline" type="checkbox"> Underline</label>
+            <label class="form-label" for="markAlignment">Alignment</label>
+            <select class="property-control" id="markAlignment">
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+            </select>
+            <button class="property-button" id="applyMarkPropsBtn" disabled>
+                Apply selected properties
+            </button>
+
+            <button class="property-button" id="replaceImageBtn" disabled>
+                Replace selected image
             </button>
 
         </div>
@@ -1426,6 +1595,56 @@ input[type="range"]{
                     </svg>
                     Rotate
                 </button>
+
+                <button class="property-button" id="cropPageBtn">
+                    Crop Page
+                </button>
+
+                <button class="property-button" id="resizePageBtn">
+                    Resize Page
+                </button>
+
+                <button class="property-button" id="splitBtn">
+                    Split PDF
+                </button>
+
+                <button class="property-button" id="exportImageBtn">
+                    Export Page PNG
+                </button>
+
+                <button class="property-button" id="exportTextBtn">
+                    Export Text
+                </button>
+                <button class="property-button" id="imagesToPdfBtn">
+                    Images to PDF
+                </button>
+
+                <button class="property-button" id="editMetadataBtn">
+                    Edit Metadata
+                </button>
+
+                <p class="property-help">OCR language: English</p>
+                <button class="property-button" id="ocrPageBtn">
+                    OCR Current Page
+                </button>
+                <button class="property-button" id="ocrAllBtn">
+                    OCR Scanned Pages
+                </button>
+
+                <button class="property-button" id="formsBtn">
+                    Fill / Flatten Forms
+                </button>
+                <button class="property-button" id="createFormFieldBtn">
+                    Create Form Field
+                </button>
+                <button class="property-button" id="protectPdfBtn">
+                    Password Protect PDF
+                </button>
+                <p class="property-help">
+                    Export flattens standard form fields to preserve their
+                    appearance and values. Redaction rasterizes every page,
+                    removing text selection and links from the exported copy.
+                </p>
 
             </div>
 
@@ -1518,6 +1737,22 @@ input[type="range"]{
     hidden
 >
 
+<input
+    type="file"
+    id="insertPagesInput"
+    accept=".pdf,application/pdf"
+    multiple
+    hidden
+>
+
+<input
+    type="file"
+    id="imagesToPdfInput"
+    accept="image/png,image/jpeg,image/webp"
+    multiple
+    hidden
+>
+
 
 <div class="search-panel" id="searchPanel">
 
@@ -1534,6 +1769,24 @@ input[type="range"]{
         </button>
 
     </div>
+
+    <div class="search-options">
+        <label class="form-label">
+            <input type="checkbox" id="searchCaseSensitive">
+            Match case
+        </label>
+        <label class="form-label">
+            <input type="checkbox" id="searchRegex">
+            Regex
+        </label>
+    </div>
+
+    <div class="search-navigation">
+        <button class="search-button" id="searchPrevious" type="button">Previous</button>
+        <span class="search-count" id="searchCount" aria-live="polite">No search</span>
+        <button class="search-button" id="searchNext" type="button">Next</button>
+    </div>
+    <div class="search-results" id="searchResults" aria-label="Search results"></div>
 
 </div>
 
@@ -1589,6 +1842,17 @@ input[type="range"]{
 
 import * as pdfjsLib from
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+import {createOcrWorker} from "./pdf_ocr.js";
+import {
+    replaceTextObjects,
+    protectPdf
+} from "./pdfium_engine.js";
+import {
+    listFormFields,
+    setFormValues,
+    flattenForm,
+    createFormField
+} from "./pdf_forms.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
 "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
@@ -1618,6 +1882,14 @@ const state = {
 
     textItems:{},
 
+    searchResults:[],
+
+    activeSearchResult:-1,
+
+    lastSearchKey:"",
+
+    searchGeneration:0,
+
     currentViewport:null,
 
     renderTask:null,
@@ -1638,6 +1910,7 @@ let nextAnnotationId = 1;
 let selectedAnnotationId = null;
 let pointerAction = null;
 let signatureImage = null;
+let annotationClipboard = null;
 
 /* =====================================================
    ELEMENTS
@@ -1786,6 +2059,12 @@ async event => {
 async function loadPDF(file){
 
     try{
+
+        state.searchGeneration++;
+        state.searchResults = [];
+        state.activeSearchResult = -1;
+        state.lastSearchKey = "";
+        renderSearchResults();
 
         status("Opening PDF...");
 
@@ -2067,6 +2346,12 @@ async function renderPage(){
                 textContent.items,
                 viewport
             );
+        }else{
+            annotationLayer
+                .querySelectorAll(
+                    ".pdf-text-target, .pdf-text-replacement"
+                )
+                .forEach(element => element.remove());
         }
 
         highlightThumb();
@@ -2614,6 +2899,8 @@ function setTool(tool){
     status(
         tool === "edit"
             ? "Click selectable text to replace it; fonts are approximated"
+            : tool === "redact"
+                ? "Drag over content to redact. Export will rasterize every page; text, links, and form editability will be removed."
             : tool === "text"
                 ? "Click the page to place new text"
                 : ["highlight","draw","rectangle","ellipse","arrow","note","stamp","signature"].includes(tool)
@@ -2677,6 +2964,10 @@ function renderAnnotations(){
 
         element.style.top =
         item.y * state.zoom + "px";
+        element.style.opacity =
+        item.type === "redact"
+            ? "1"
+            : String(item.opacity ?? 1);
 
         const strokeColor = item.color || "#9f4738";
         const strokeWidth = Math.max(1,Number(item.strokeWidth) || 3) * state.zoom;
@@ -2693,6 +2984,23 @@ function renderAnnotations(){
             item.size * state.zoom + "px";
             element.style.color = strokeColor;
             element.style.width = Math.max(80,item.width || 200) * state.zoom + "px";
+            element.style.height =
+            Math.max(20,item.height || item.size * 1.5) *
+            state.zoom + "px";
+            element.style.fontFamily =
+            item.fontFamily === "TimesRoman"
+                ? "Times New Roman, serif"
+                : item.fontFamily === "Courier"
+                    ? "Courier New, monospace"
+                    : "Helvetica, Arial, sans-serif";
+            element.style.fontWeight =
+            item.bold ? "bold" : "normal";
+            element.style.fontStyle =
+            item.italic ? "italic" : "normal";
+            element.style.textDecoration =
+            item.underline ? "underline" : "none";
+            element.style.textAlign =
+            item.align || "left";
 
         }
 
@@ -2707,8 +3015,17 @@ function renderAnnotations(){
             element.style.height =
             item.height * state.zoom + "px";
             element.style.backgroundColor = item.color || "rgba(255,218,60,.4)";
-            element.style.opacity = ".4";
+            element.style.opacity =
+            String(item.opacity ?? .4);
 
+        }
+
+        if(item.type === "redact"){
+            element.className += " redaction-box";
+            element.style.width =
+            item.width * state.zoom + "px";
+            element.style.height =
+            item.height * state.zoom + "px";
         }
 
         if(item.type === "rectangle" || item.type === "ellipse"){
@@ -2725,6 +3042,11 @@ function renderAnnotations(){
             element.style.borderWidth = `${strokeWidth}px`;
             if(item.fillColor)
                 element.style.backgroundColor = item.fillColor;
+            if(item.rotation){
+                element.style.transform =
+                `rotate(${item.rotation}deg)`;
+                element.style.transformOrigin = "center";
+            }
 
         }
 
@@ -2836,9 +3158,14 @@ function renderAnnotations(){
             item.width * state.zoom + "px";
             image.style.height =
             item.height * state.zoom + "px";
+            image.style.opacity =
+            String(item.opacity ?? 1);
             image.draggable = false;
 
             element.appendChild(image);
+            element.style.transform =
+            `rotate(${Number(item.rotation) || 0}deg)`;
+            element.style.transformOrigin = "center";
 
         }
 
@@ -2851,11 +3178,48 @@ function renderAnnotations(){
     const selected = list.find(item => item.id === selectedAnnotationId);
     $("#deleteMarkBtn").disabled = !selected;
     $("#duplicateMarkBtn").disabled = !selected;
+    $("#applyMarkPropsBtn").disabled = !selected;
+    $("#replaceImageBtn").disabled =
+    !selected || selected.type !== "image";
     if(selected){
+        $("#markObjectWidth").value =
+        selected.width ?? "";
+        $("#markHeight").value =
+        selected.height ?? "";
+        $("#markOpacity").value =
+        selected.opacity ?? 1;
+        $("#markRotation").value =
+        selected.rotation ?? 0;
+        $("#markTextSize").value =
+        selected.size ?? "";
+        $("#markFontFamily").value =
+        selected.fontFamily || "Helvetica";
+        $("#markBold").checked =
+        Boolean(selected.bold);
+        $("#markItalic").checked =
+        Boolean(selected.italic);
+        $("#markUnderline").checked =
+        Boolean(selected.underline);
+        $("#markAlignment").value =
+        selected.align || "left";
+        $("#markFillEnabled").checked =
+        Boolean(selected.fillColor);
+        $("#markFillColor").value =
+        selected.fillColor || "#ffffff";
         if(selected.color && /^#[0-9a-f]{6}$/i.test(selected.color))
             $("#markColor").value = selected.color;
         if(selected.strokeWidth)
             $("#markWidth").value = selected.strokeWidth;
+    }else{
+        $("#markObjectWidth").value = "";
+        $("#markHeight").value = "";
+        $("#markOpacity").value = "";
+        $("#markRotation").value = "";
+        $("#markTextSize").value = "";
+        $("#markBold").checked = false;
+        $("#markItalic").checked = false;
+        $("#markUnderline").checked = false;
+        $("#markFillEnabled").checked = false;
     }
 
     const entry =
@@ -2883,6 +3247,19 @@ function renderTextTargets(items,viewport){
         ".pdf-text-target, .pdf-text-replacement"
     )
     .forEach(element => element.remove());
+
+    const matchingItems = new Map();
+    state.searchResults.forEach((result,resultIndex) => {
+        if(result.pageIndex !== state.page - 1)
+            return;
+        result.itemIndexes.forEach(itemIndex => {
+            matchingItems.set(
+                itemIndex,
+                matchingItems.get(itemIndex) ||
+                    resultIndex === state.activeSearchResult
+            );
+        });
+    });
 
     items.forEach((item,index) => {
 
@@ -2934,6 +3311,12 @@ function renderTextTargets(items,viewport){
 
         target.style.fontSize =
         fontHeight + "px";
+
+        if(matchingItems.has(index)){
+            target.classList.add("search-hit");
+            if(matchingItems.get(index))
+                target.classList.add("search-hit-active");
+        }
 
         target.style.pointerEvents =
         state.tool === "edit" ? "auto" : "none";
@@ -3148,7 +3531,7 @@ function beginTextEdit(item,index,rect){
         state.dirty = true;
         renderPage();
         status(
-            "Text replaced visually — export to save it. Original text remains in the PDF text data."
+            "Text replacement previewed. Export will edit the PDF text object; unsupported partial runs will fail explicitly."
         );
 
     };
@@ -3245,7 +3628,16 @@ annotationLayer.addEventListener(
                 text,
                 x,
                 y,
-                size
+                size,
+                width:200,
+                height:32,
+                fontFamily:"Helvetica",
+                color:"#1f1f1f",
+                bold:false,
+                italic:false,
+                underline:false,
+                align:"left",
+                opacity:1
             });
 
             state.dirty = true;
@@ -3378,20 +3770,23 @@ annotationLayer.addEventListener("pointerdown",event => {
         return;
     }
 
-    if(!["highlight","draw","rectangle","ellipse","arrow"].includes(state.tool))
+    if(!["highlight","draw","rectangle","ellipse","arrow","redact"].includes(state.tool))
         return;
 
     recordUndo();
     const item = {
         id:nextAnnotationId++,
         type:state.tool === "highlight" ? "highlight"
+            : state.tool === "redact" ? "redact"
             : ["draw","arrow"].includes(state.tool) ? "ink"
                 : state.tool,
         x:point.x,
         y:point.y,
         width:1,
         height:1,
-        color:state.tool === "highlight" ? "#ffe13b" : $("#markColor").value,
+        color:state.tool === "highlight" ? "#ffe13b"
+            : state.tool === "redact" ? "#000000"
+                : $("#markColor").value,
         strokeWidth:Number($("#markWidth").value) || 3
     };
     if(state.tool === "arrow")
@@ -3523,8 +3918,110 @@ function duplicateSelectedMark(){
     renderAnnotations();
 }
 
+function copySelectedMark(){
+    const item = (state.annotations[state.page] || [])
+        .find(mark => mark.id === selectedAnnotationId);
+    if(!item)
+        return false;
+    annotationClipboard = structuredClone(item);
+    return true;
+}
+
+function pasteMark(){
+    if(!annotationClipboard || !state.pdf)
+        return false;
+
+    recordUndo();
+    const pasted = structuredClone(annotationClipboard);
+    pasted.id = nextAnnotationId++;
+    pasted.x = (pasted.x || 0) + 14;
+    pasted.y = (pasted.y || 0) + 14;
+    annotations().push(pasted);
+    selectedAnnotationId = pasted.id;
+    state.dirty = true;
+    renderAnnotations();
+    return true;
+}
+
 $("#deleteMarkBtn").onclick = deleteSelectedMark;
 $("#duplicateMarkBtn").onclick = duplicateSelectedMark;
+$("#applyMarkPropsBtn").onclick = () => {
+    const item = (state.annotations[state.page] || [])
+        .find(mark => mark.id === selectedAnnotationId);
+    if(!item)
+        return;
+
+    const values = {
+        width:$("#markObjectWidth").value === ""
+            ? item.width
+            : Number($("#markObjectWidth").value),
+        height:$("#markHeight").value === ""
+            ? item.height
+            : Number($("#markHeight").value),
+        opacity:$("#markOpacity").value === ""
+            ? (item.opacity ?? 1)
+            : Number($("#markOpacity").value),
+        rotation:$("#markRotation").value === ""
+            ? (item.rotation ?? 0)
+            : Number($("#markRotation").value),
+        size:$("#markTextSize").value === ""
+            ? item.size
+            : Number($("#markTextSize").value)
+    };
+    if(
+        (values.width !== undefined &&
+            (!Number.isFinite(values.width) || values.width <= 0)) ||
+        (values.height !== undefined &&
+            (!Number.isFinite(values.height) || values.height <= 0)) ||
+        !Number.isFinite(values.opacity) ||
+        values.opacity < 0 ||
+        values.opacity > 1 ||
+        !Number.isFinite(values.rotation) ||
+        (item.type === "text" &&
+            (!Number.isFinite(values.size) || values.size < 4))
+    ){
+        alert("Enter positive dimensions, opacity from 0 to 1, and valid text size.");
+        return;
+    }
+
+    recordUndo();
+    if(values.width !== undefined)
+        item.width = values.width;
+    if(values.height !== undefined)
+        item.height = values.height;
+    item.opacity = values.opacity;
+    if(item.type === "image")
+        item.rotation = values.rotation;
+    if(["rectangle","ellipse"].includes(item.type))
+        item.rotation = values.rotation;
+    if(item.type === "text")
+        item.size = values.size;
+    if(item.type === "text"){
+        item.fontFamily = $("#markFontFamily").value;
+        item.bold = $("#markBold").checked;
+        item.italic = $("#markItalic").checked;
+        item.underline = $("#markUnderline").checked;
+        item.align = $("#markAlignment").value;
+    }
+    if(item.type !== "image" && item.type !== "redact")
+        item.color = $("#markColor").value;
+    if(["rectangle","ellipse"].includes(item.type))
+        item.fillColor = $("#markFillEnabled").checked
+            ? $("#markFillColor").value
+            : "";
+    state.dirty = true;
+    renderAnnotations();
+};
+
+let replaceImageRequested = false;
+$("#replaceImageBtn").onclick = () => {
+    const selected = (state.annotations[state.page] || [])
+        .find(mark => mark.id === selectedAnnotationId);
+    if(!selected || selected.type !== "image")
+        return;
+    replaceImageRequested = true;
+    $("#imageInput").click();
+};
 
 
 /* =====================================================
@@ -3618,6 +4115,9 @@ $("#drawBtn").onclick =
 
 };
 
+$("#redactBtn").onclick =
+() => setTool("redact");
+
 
 /* =====================================================
    ROTATE
@@ -3648,6 +4148,213 @@ rotatePage;
 
 $("#propRotate").onclick =
 rotatePage;
+
+async function replaceWorkspacePDF(bytes,fileName,statusMessage){
+    state.searchGeneration++;
+    state.searchResults = [];
+    state.activeSearchResult = -1;
+    state.lastSearchKey = "";
+    renderSearchResults();
+
+    const pdf = await pdfjsLib.getDocument({
+        data:bytes.slice()
+    }).promise;
+
+    state.pdf = pdf;
+    state.file = new File(
+        [bytes],
+        fileName,
+        {type:"application/pdf"}
+    );
+    state.fileName = fileName;
+    state.pages = Array.from(
+        {length:pdf.numPages},
+        (_,index) => ({
+            sourceIndex:index,
+            rotation:0
+        })
+    );
+    state.annotations = {};
+    state.textItems = {};
+    state.page = Math.min(
+        Math.max(1,state.page),
+        pdf.numPages
+    );
+    state.dirty = true;
+    selectedAnnotationId = null;
+
+    $("#documentName").textContent = fileName;
+    $("#fileInfo").textContent =
+        `${fileName} • ${formatBytes(state.file.size)}`;
+    $("#pageTotal").textContent = pageCount();
+    emptyState.style.display = "none";
+    pageContainer.style.display = "block";
+    updateHistoryButtons();
+
+    await renderPage();
+    await renderThumbnails();
+    status(statusMessage);
+}
+
+async function applyPageGeometry(change){
+    if(!state.pdf || !state.file)
+        return;
+
+    try{
+        status("Applying page dimensions...");
+        const source = await PDFLib.PDFDocument.load(
+            await createEditedPDF()
+        );
+        const page = source.getPage(state.page - 1);
+        change(page);
+        const bytes = await source.save();
+
+        recordUndo();
+        await replaceWorkspacePDF(
+            bytes,
+            state.fileName,
+            "Page dimensions applied. Export to save the PDF."
+        );
+    }catch(error){
+        console.error(error);
+        status("Unable to change page dimensions");
+        alert(`Page operation failed.\n\n${error.message}`);
+    }
+}
+
+$("#editMetadataBtn").onclick = async () => {
+    if(!state.pdf || !state.file)
+        return;
+
+    try{
+        const document = await PDFLib.PDFDocument.load(
+            await createEditedPDF()
+        );
+        const keywords = document.getKeywords();
+        openModal(
+            "Edit PDF Metadata",
+            `
+            <div class="form-row"><label class="form-label" for="metadataTitle">Title</label><input class="form-control" id="metadataTitle" value="${escapeHTML(document.getTitle() || "")}"></div>
+            <div class="form-row"><label class="form-label" for="metadataAuthor">Author</label><input class="form-control" id="metadataAuthor" value="${escapeHTML(document.getAuthor() || "")}"></div>
+            <div class="form-row"><label class="form-label" for="metadataSubject">Subject</label><input class="form-control" id="metadataSubject" value="${escapeHTML(document.getSubject() || "")}"></div>
+            <div class="form-row"><label class="form-label" for="metadataKeywords">Keywords</label><input class="form-control" id="metadataKeywords" value="${escapeHTML(keywords || "")}"></div>
+            <div class="form-row"><label class="form-label" for="metadataCreator">Creator</label><input class="form-control" id="metadataCreator" value="${escapeHTML(document.getCreator() || "")}"></div>
+            `,
+            async () => {
+                const edited = await PDFLib.PDFDocument.load(
+                    await createEditedPDF()
+                );
+                edited.setTitle($("#metadataTitle").value);
+                edited.setAuthor($("#metadataAuthor").value);
+                edited.setSubject($("#metadataSubject").value);
+                edited.setKeywords(
+                    $("#metadataKeywords").value
+                        .split(",")
+                        .map(value => value.trim())
+                        .filter(Boolean)
+                );
+                edited.setCreator($("#metadataCreator").value);
+
+                const bytes = await edited.save();
+                closeModal();
+                recordUndo();
+                await replaceWorkspacePDF(
+                    bytes,
+                    state.fileName,
+                    "Metadata updated. Export to save the PDF."
+                );
+            }
+        );
+    }catch(error){
+        console.error(error);
+        status("Unable to read PDF metadata");
+        alert(`Metadata could not be read.\n\n${error.message}`);
+    }
+};
+
+$("#cropPageBtn").onclick = () => {
+    if(!state.pdf)
+        return;
+
+    openModal(
+        "Crop Current Page",
+        `
+        <p>Enter the crop margins in PDF points (72 points = 1 inch).</p>
+        <div class="form-row"><label class="form-label" for="cropLeft">Left</label><input class="form-control" id="cropLeft" type="number" min="0" value="24"></div>
+        <div class="form-row"><label class="form-label" for="cropRight">Right</label><input class="form-control" id="cropRight" type="number" min="0" value="24"></div>
+        <div class="form-row"><label class="form-label" for="cropTop">Top</label><input class="form-control" id="cropTop" type="number" min="0" value="24"></div>
+        <div class="form-row"><label class="form-label" for="cropBottom">Bottom</label><input class="form-control" id="cropBottom" type="number" min="0" value="24"></div>
+        `,
+        async () => {
+            const margins = {
+                left:Number($("#cropLeft").value),
+                right:Number($("#cropRight").value),
+                top:Number($("#cropTop").value),
+                bottom:Number($("#cropBottom").value)
+            };
+            if(Object.values(margins).some(value =>
+                !Number.isFinite(value) || value < 0
+            )){
+                alert("Crop margins must be non-negative numbers.");
+                return;
+            }
+
+            closeModal();
+            await applyPageGeometry(page => {
+                const box = page.getCropBox();
+                const x = box.x + margins.left;
+                const y = box.y + margins.bottom;
+                const width = box.width - margins.left - margins.right;
+                const height = box.height - margins.top - margins.bottom;
+                if(width <= 0 || height <= 0)
+                    throw new Error("Crop margins must leave a positive page area.");
+                page.setCropBox(x,y,width,height);
+            });
+        }
+    );
+};
+
+$("#resizePageBtn").onclick = async () => {
+    if(!state.pdf)
+        return;
+
+    const pageIndex = state.page - 1;
+    let initialWidth = 612;
+    let initialHeight = 792;
+    try{
+        const document = await PDFLib.PDFDocument.load(
+            await createEditedPDF()
+        );
+        const page = document.getPage(pageIndex);
+        initialWidth = page.getWidth();
+        initialHeight = page.getHeight();
+    }catch(error){
+        console.error(error);
+        status("Unable to read the current page size");
+        return;
+    }
+
+    openModal(
+        "Resize Current Page",
+        `
+        <p>Set the page size in PDF points (72 points = 1 inch). Content is not scaled; resizing may clip or add whitespace.</p>
+        <div class="form-row"><label class="form-label" for="resizeWidth">Width</label><input class="form-control" id="resizeWidth" type="number" min="1" value="${initialWidth}"></div>
+        <div class="form-row"><label class="form-label" for="resizeHeight">Height</label><input class="form-control" id="resizeHeight" type="number" min="1" value="${initialHeight}"></div>
+        `,
+        async () => {
+            const width = Number($("#resizeWidth").value);
+            const height = Number($("#resizeHeight").value);
+            if(!Number.isFinite(width) || !Number.isFinite(height) ||
+                width <= 0 || height <= 0){
+                alert("Page width and height must be positive numbers.");
+                return;
+            }
+
+            closeModal();
+            await applyPageGeometry(page => page.setSize(width,height));
+        }
+    );
+};
 
 
 /* =====================================================
@@ -3985,79 +4692,208 @@ $("#searchBtn").onclick =
 $("#searchExecute").onclick =
 searchPDF;
 
+$("#searchPrevious").onclick = () => navigateSearchResults(-1);
+$("#searchNext").onclick = () => navigateSearchResults(1);
 
 $("#searchInput").addEventListener(
 "keydown",
 event => {
 
-    if(event.key === "Enter")
-        searchPDF();
+    if(event.key === "Enter"){
+        event.preventDefault();
+        const sameSearch =
+            state.lastSearchKey === currentSearchKey();
+        if(sameSearch && event.shiftKey)
+            navigateSearchResults(-1);
+        else if(sameSearch && state.searchResults.length)
+            navigateSearchResults(1);
+        else
+            searchPDF();
+    }
 
 });
 
 
 async function searchPDF(){
 
-    if(!state.pdf)
+    if(!state.pdf){
+        status("Open a PDF before searching");
         return;
+    }
 
     const query =
     $("#searchInput")
         .value
-        .trim()
-        .toLowerCase();
+        .trim();
 
-    if(!query)
+    if(!query){
+        state.searchGeneration++;
+        state.searchResults = [];
+        state.activeSearchResult = -1;
+        state.lastSearchKey = "";
+        renderSearchResults();
+        renderPage();
         return;
-
-    status("Searching...");
-
-    for(
-        let i=0;
-        i<pageCount();
-        i++
-    ){
-
-        const entry =
-        state.pages[i];
-
-        if(entry.sourceIndex === null)
-            continue;
-
-        const page =
-        await state.pdf.getPage(
-            entry.sourceIndex + 1
-        );
-
-        const content =
-        await page.getTextContent();
-
-        const text =
-        content.items
-        .map(item => item.str)
-        .join(" ")
-        .toLowerCase();
-
-        if(text.includes(query)){
-
-            state.page = i + 1;
-
-            await renderPage();
-
-            status(
-                `Found "${query}" on page ${i + 1}`
-            );
-
-            return;
-
-        }
-
     }
 
-    status(
-        `"${query}" was not found`
-    );
+    const isRegex = $("#searchRegex").checked;
+    const caseSensitive = $("#searchCaseSensitive").checked;
+    let matcher;
+    try{
+        const expression = isRegex
+            ? query
+            : query.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+        matcher = new RegExp(
+            expression,
+            caseSensitive ? "g" : "gi"
+        );
+        if(isRegex && matcher.test("") && matcher.lastIndex === 0){
+            status("Search expressions that can match an empty string are not supported.");
+            return;
+        }
+    }catch(error){
+        status(`Invalid regular expression: ${error.message}`);
+        return;
+    }
 
+    state.lastSearchKey = currentSearchKey();
+    state.searchGeneration++;
+    const searchGeneration = state.searchGeneration;
+    const results = [];
+    const resultLimit = 2000;
+    state.searchResults = [];
+    state.activeSearchResult = -1;
+    renderSearchResults();
+    await renderPage();
+    status("Searching...");
+
+    try{
+        for(let pageIndex=0; pageIndex<pageCount(); pageIndex++){
+            if(searchGeneration !== state.searchGeneration)
+                return;
+            status(`Searching page ${pageIndex + 1} of ${pageCount()}...`);
+
+            const entry = state.pages[pageIndex];
+            if(entry.sourceIndex === null)
+                continue;
+
+            const page = await state.pdf.getPage(entry.sourceIndex + 1);
+            const content = await page.getTextContent();
+            const itemIndexes = [];
+            let text = "";
+            for(let itemIndex=0; itemIndex<content.items.length; itemIndex++){
+                const item = content.items[itemIndex];
+                if(typeof item.str !== "string")
+                    continue;
+                if(text){
+                    text += " ";
+                    itemIndexes.push(null);
+                }
+                text += item.str;
+                for(let offset=0; offset<item.str.length; offset++)
+                    itemIndexes.push(itemIndex);
+            }
+
+            matcher.lastIndex = 0;
+            let match;
+            while((match = matcher.exec(text)) !== null){
+                const end = match.index + match[0].length;
+                const matchedItems = [...new Set(
+                    itemIndexes
+                        .slice(match.index,end)
+                        .filter(index => index !== null)
+                )];
+                if(matchedItems.length){
+                    results.push({
+                        pageIndex,
+                        itemIndexes:matchedItems,
+                        text:match[0],
+                        snippet:text.slice(
+                            Math.max(0,match.index - 45),
+                            Math.min(text.length,end + 45)
+                        ).replace(/\s+/g," ").trim()
+                    });
+                }
+                if(results.length >= resultLimit)
+                    break;
+                if(match[0].length === 0)
+                    matcher.lastIndex++;
+            }
+            if(results.length >= resultLimit)
+                break;
+        }
+
+        state.searchResults = results;
+        state.activeSearchResult = results.length ? 0 : -1;
+        if(results.length)
+            state.page = results[0].pageIndex + 1;
+        renderSearchResults();
+        await renderPage();
+
+        const countText = results.length >= resultLimit
+            ? `First ${resultLimit} matches`
+            : `${results.length} ${results.length === 1 ? "match" : "matches"}`;
+        status(results.length
+            ? `${countText} found. Matching text runs are highlighted; highlight bounds are approximate.`
+            : `"${query}" was not found in extractable PDF text.`);
+    }catch(error){
+        console.error(error);
+        status("PDF search failed");
+        alert(`Search failed.\n\n${error.message}`);
+    }
+}
+
+function currentSearchKey(){
+    return JSON.stringify([
+        $("#searchInput").value.trim(),
+        $("#searchRegex").checked,
+        $("#searchCaseSensitive").checked
+    ]);
+}
+
+function renderSearchResults(){
+    const container = $("#searchResults");
+    container.replaceChildren();
+    const count = state.searchResults.length;
+    $("#searchCount").textContent = count
+        ? `${state.activeSearchResult + 1} / ${count}${count === 2000 ? "+" : ""}`
+        : "0 matches";
+    $("#searchPrevious").disabled = count < 2;
+    $("#searchNext").disabled = count < 2;
+
+    state.searchResults.forEach((result,index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "search-result";
+        button.setAttribute(
+            "aria-current",
+            String(index === state.activeSearchResult)
+        );
+        const pageLabel = document.createElement("span");
+        pageLabel.className = "search-result-page";
+        pageLabel.textContent = `Page ${result.pageIndex + 1}`;
+        button.append(pageLabel,document.createTextNode(result.snippet));
+        button.addEventListener("click",() => selectSearchResult(index));
+        container.appendChild(button);
+    });
+}
+
+function selectSearchResult(index){
+    if(index < 0 || index >= state.searchResults.length)
+        return;
+    state.activeSearchResult = index;
+    state.page = state.searchResults[index].pageIndex + 1;
+    renderSearchResults();
+    renderPage();
+}
+
+function navigateSearchResults(direction){
+    const count = state.searchResults.length;
+    if(!count)
+        return;
+    const nextIndex =
+        (state.activeSearchResult + direction + count) % count;
+    selectSearchResult(nextIndex);
 }
 
 
@@ -4067,64 +4903,690 @@ async function searchPDF(){
 
 $("#mergeBtn").onclick = () => $("#mergeInput").click();
 
-$("#mergeInput").addEventListener("change",async event => {
-    const files = [...event.target.files];
-    event.target.value = "";
+async function combinePDFs(files,insertAt=null){
     if(!files.length)
         return;
+    if(insertAt !== null && !state.pdf){
+        alert("Open a PDF before inserting pages.");
+        return;
+    }
     if(!state.pdf && files.length < 2){
         alert("Open a PDF first, or select at least two files to merge.");
         return;
     }
 
     try{
-        status("Merging PDFs into the current workspace…");
+        status(insertAt === null ? "Merging PDFs..." : "Inserting PDF pages...");
         const output = await PDFLib.PDFDocument.create();
+        let currentPages = [];
+
         if(state.pdf){
-            const current = await PDFLib.PDFDocument.load(await createEditedPDF());
-            const pages = await output.copyPages(current,current.getPageIndices());
-            pages.forEach(page => output.addPage(page));
+            const current = await PDFLib.PDFDocument.load(
+                await createEditedPDF()
+            );
+            currentPages = await output.copyPages(
+                current,
+                current.getPageIndices()
+            );
         }
+
+        const incomingPages = [];
         for(const file of files){
-            const source = await PDFLib.PDFDocument.load(await file.arrayBuffer());
-            const pages = await output.copyPages(source,source.getPageIndices());
-            pages.forEach(page => output.addPage(page));
+            const source = await PDFLib.PDFDocument.load(
+                await file.arrayBuffer()
+            );
+            incomingPages.push(
+                ...await output.copyPages(
+                    source,
+                    source.getPageIndices()
+                )
+            );
+        }
+
+        if(insertAt === null){
+            currentPages.forEach(page => output.addPage(page));
+            incomingPages.forEach(page => output.addPage(page));
+        }else{
+            for(let index=0; index<=currentPages.length; index++){
+                if(index === insertAt)
+                    incomingPages.forEach(page => output.addPage(page));
+                if(index < currentPages.length)
+                    output.addPage(currentPages[index]);
+            }
         }
 
         const bytes = await output.save();
-        const fileName = state.pdf
-            ? `${state.fileName.replace(/\.pdf$/i,"")}-merged.pdf`
-            : "merged.pdf";
-        const pdf = await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+        const baseName = state.fileName
+            ? state.fileName.replace(/\.pdf$/i,"")
+            : "document";
+        const fileName = insertAt === null
+            ? `${baseName}-merged.pdf`
+            : `${baseName}-with-inserted-pages.pdf`;
+
         recordUndo();
-        state.pdf = pdf;
-        state.file = new File([bytes],fileName,{type:"application/pdf"});
-        state.fileName = fileName;
-        state.pages = Array.from({length:pdf.numPages},(_,index) => ({
-            sourceIndex:index,
-            rotation:0
-        }));
-        state.annotations = {};
-        state.textItems = {};
-        state.page = 1;
-        state.dirty = true;
-        selectedAnnotationId = null;
-        $("#documentName").textContent = fileName;
-        $("#fileInfo").textContent = `${fileName} • ${formatBytes(state.file.size)}`;
-        $("#pageTotal").textContent = pageCount();
-        emptyState.style.display = "none";
-        pageContainer.style.display = "block";
-        updateHistoryButtons();
-        await renderPage();
-        await renderThumbnails();
-        status(`Merged into workspace — ${pageCount()} pages. Export to save the combined PDF.`);
+        await replaceWorkspacePDF(
+            bytes,
+            fileName,
+            `${insertAt === null ? "Merged" : "Inserted"} PDF pages. Export to save the combined document.`
+        );
     }catch(error){
         console.error(error);
-        status("PDF merge failed");
-        alert(`PDF merge failed.\n\n${error.message}`);
+        status(insertAt === null ? "PDF merge failed" : "PDF page insertion failed");
+        alert(`PDF operation failed.\n\n${error.message}`);
     }
+}
+
+$("#mergeInput").addEventListener("change",async event => {
+    const files = [...event.target.files];
+    event.target.value = "";
+    await combinePDFs(files);
 });
 
+$("#insertPagesBtn").onclick = () => {
+    if(!state.pdf){
+        status("Open a PDF before inserting pages");
+        return;
+    }
+    $("#insertPagesInput").click();
+};
+
+$("#insertPagesInput").addEventListener("change",async event => {
+    const files = [...event.target.files];
+    event.target.value = "";
+    await combinePDFs(files,state.page);
+});
+
+$("#splitBtn").onclick = async () => {
+    if(!state.pdf)
+        return;
+
+    try{
+        status("Splitting PDF into single-page files...");
+        const source = await PDFLib.PDFDocument.load(
+            await createEditedPDF()
+        );
+        const baseName = state.fileName.replace(/\.pdf$/i,"");
+        for(let index=0; index<source.getPageCount(); index++){
+            const output = await PDFLib.PDFDocument.create();
+            const [page] = await output.copyPages(source,[index]);
+            output.addPage(page);
+            downloadBlob(
+                new Blob(
+                    [await output.save()],
+                    {type:"application/pdf"}
+                ),
+                `${baseName}-page-${index + 1}.pdf`
+            );
+        }
+        status(`Split ${source.getPageCount()} pages into individual PDF downloads.`);
+    }catch(error){
+        console.error(error);
+        status("PDF split failed");
+        alert(`PDF split failed.\n\n${error.message}`);
+    }
+};
+
+async function performOcr(pageIndexes){
+    if(!state.pdf || !state.file || !pageIndexes.length)
+        return;
+
+    const selectedPages = [...new Set(pageIndexes)]
+        .filter(index =>
+            Number.isInteger(index) &&
+            index >= 0 &&
+            index < pageCount()
+        );
+    if(!selectedPages.length)
+        return;
+
+    let worker;
+    let output = await PDFLib.PDFDocument.load(
+        await createEditedPDF()
+    );
+    const font = await output.embedFont(
+        PDFLib.StandardFonts.Helvetica
+    );
+    let recognizedWords = 0;
+    let skippedNativePages = 0;
+    let unsupportedWords = 0;
+    let completed = 0;
+
+    try{
+        status("Loading OCR language data...");
+        worker = await createOcrWorker(
+            message => {
+                if(message.status === "recognizing text"){
+                    const percent = Math.round(
+                        (completed + (message.progress || 0)) /
+                        selectedPages.length * 100
+                    );
+                    status(`OCR in progress: ${percent}%`);
+                }
+            }
+        );
+
+        for(const index of selectedPages){
+            const entry = state.pages[index];
+            if(entry.sourceIndex === null){
+                completed++;
+                continue;
+            }
+
+            const sourcePage = await state.pdf.getPage(
+                entry.sourceIndex + 1
+            );
+            const textContent = await sourcePage.getTextContent();
+            const existingText = textContent.items
+                .map(item => item.str || "")
+                .join("")
+                .trim();
+
+            if(existingText.length > 15){
+                skippedNativePages++;
+                completed++;
+                continue;
+            }
+
+            const viewport = sourcePage.getViewport({
+                scale:2,
+                rotation:entry.rotation || 0
+            });
+            const imageCanvas = document.createElement("canvas");
+            imageCanvas.width = Math.ceil(viewport.width);
+            imageCanvas.height = Math.ceil(viewport.height);
+            await sourcePage.render({
+                canvasContext:imageCanvas.getContext("2d"),
+                viewport
+            }).promise;
+
+            const words = await worker.recognize(imageCanvas);
+            const page = output.getPage(index);
+            const result = {
+                added:0,
+                unsupported:0
+            };
+            for(const word of words){
+                const {x0,y0,x1,y1} = word.box;
+                const [startX,startY] =
+                viewport.convertToPdfPoint(x0,y1);
+                const [endX,endY] =
+                viewport.convertToPdfPoint(x1,y1);
+                const [topX,topY] =
+                viewport.convertToPdfPoint(x0,y0);
+                const size = Math.max(
+                    4,
+                    Math.hypot(topX-startX,topY-startY) * .78
+                );
+                const rotation = Math.atan2(
+                    endY-startY,
+                    endX-startX
+                ) * 180 / Math.PI;
+                try{
+                    font.encodeText(word.text);
+                    page.drawText(word.text,{
+                        x:startX,
+                        y:startY,
+                        size,
+                        font,
+                        color:PDFLib.rgb(0,0,0),
+                        opacity:0,
+                        rotate:PDFLib.degrees(rotation)
+                    });
+                    result.added++;
+                }catch(error){
+                    if(!(error instanceof Error))
+                        throw error;
+                    result.unsupported++;
+                }
+            }
+
+            recognizedWords += result.added;
+            unsupportedWords += result.unsupported;
+            completed++;
+            imageCanvas.width = 1;
+            imageCanvas.height = 1;
+        }
+
+        if(!recognizedWords){
+            status("OCR found no embeddable words on scanned pages.");
+            alert(
+                "No OCR text was added. Pages with existing selectable text " +
+                "are skipped, and only characters supported by the embedded " +
+                "Helvetica font can be written. Check the selected language " +
+                "or try a different scan."
+            );
+            return;
+        }
+
+        const bytes = await output.save();
+        recordUndo();
+        await replaceWorkspacePDF(
+            bytes,
+            state.fileName,
+            `OCR added ${recognizedWords} searchable words. Export to save.`
+        );
+        const detail = [
+            skippedNativePages
+                ? `${skippedNativePages} pages with existing text skipped`
+                : "",
+            unsupportedWords
+                ? `${unsupportedWords} characters not supported by Helvetica omitted`
+                : ""
+        ].filter(Boolean);
+        if(detail.length)
+            status(`OCR added ${recognizedWords} words; ${detail.join("; ")}.`);
+    }catch(error){
+        console.error(error);
+        status("OCR failed");
+        alert(
+            "OCR failed. Confirm that the OCR library and language data can " +
+            "be downloaded, then try again.\n\n" +
+            error.message
+        );
+    }finally{
+        if(worker)
+            await worker.terminate();
+    }
+}
+
+function renderFormControl(field,index){
+    const attribute =
+    `data-form-index="${index}"`;
+
+    if(!field.editable)
+        return `<div class="form-row"><label class="form-label">${escapeHTML(field.name)}</label><span>Unsupported field type (${escapeHTML(field.kind)})</span></div>`;
+
+    if(field.kind === "checkbox")
+        return `<div class="form-row"><label class="form-label" for="formField${index}">${escapeHTML(field.name)}</label><input id="formField${index}" ${attribute} type="checkbox" ${field.value ? "checked" : ""}></div>`;
+
+    if(field.kind === "radio" || field.kind === "choice"){
+        const selected = Array.isArray(field.value)
+            ? field.value
+            : [field.value];
+        const options = field.options.map(option =>
+            `<option value="${escapeHTML(option)}" ${selected.includes(option) ? "selected" : ""}>${escapeHTML(option)}</option>`
+        ).join("");
+        return `<div class="form-row"><label class="form-label" for="formField${index}">${escapeHTML(field.name)}</label><select class="form-control" id="formField${index}" ${attribute} ${field.multiple ? "multiple" : ""}>${options}</select></div>`;
+    }
+
+    return `<div class="form-row"><label class="form-label" for="formField${index}">${escapeHTML(field.name)}</label><input class="form-control" id="formField${index}" ${attribute} value="${escapeHTML(field.value)}"></div>`;
+}
+
+async function openFormEditor(){
+    if(!state.pdf || !state.file)
+        return;
+
+    try{
+        const document = await PDFLib.PDFDocument.load(
+            await state.file.arrayBuffer()
+        );
+        const fields = listFormFields(document);
+        if(!fields.length){
+            status("No AcroForm fields found. Use Create Form Field to add a field.");
+            return;
+        }
+
+        const controls = fields
+            .map(renderFormControl)
+            .join("");
+
+        openModal(
+            "Fill and Flatten PDF Forms",
+            `
+            <p>Supported text, checkbox, radio, and choice fields will be filled, then flattened into the page so values are preserved by PDF export. Unsupported button and signature fields are left unchanged. Flattening removes interactive form behavior.</p>
+            ${controls}
+            `,
+            async () => {
+                const edited = await PDFLib.PDFDocument.load(
+                    await state.file.arrayBuffer()
+                );
+                const values = {};
+                fields.forEach((field,index) => {
+                    if(!field.editable)
+                        return;
+                    const control = $(`[data-form-index="${index}"]`);
+                    if(field.kind === "checkbox"){
+                        values[field.name] = control.checked;
+                    }else if(field.multiple){
+                        values[field.name] = [...control.selectedOptions]
+                            .map(option => option.value);
+                    }else{
+                        values[field.name] = control.value;
+                    }
+                });
+
+                const unsupported = setFormValues(
+                    edited,
+                    values
+                );
+                flattenForm(edited);
+                const sourceBytes = await edited.save();
+                const outputBytes = await createEditedPDF(sourceBytes);
+                closeModal();
+                recordUndo();
+                await replaceWorkspacePDF(
+                    outputBytes,
+                    state.fileName,
+                    "Form values saved and flattened. Export to download."
+                );
+                if(unsupported.length)
+                    status(`Forms flattened; unsupported fields left unchanged: ${unsupported.join(", ")}`);
+            }
+        );
+    }catch(error){
+        console.error(error);
+        status("Unable to read or fill PDF forms");
+        alert(`PDF form operation failed.\n\n${error.message}`);
+    }
+}
+
+$("#formsBtn").onclick = openFormEditor;
+
+$("#protectPdfBtn").onclick = () => {
+    if(!state.pdf || !state.file)
+        return;
+
+    openModal(
+        "Password Protect PDF",
+        `
+        <p>Create a password-protected download. The user password is required to open the PDF; the owner password controls permissions. Passwords are only used in this browser and are not saved in the editor.</p>
+        <div class="form-row"><label class="form-label" for="userPassword">Open password</label><input class="form-control" id="userPassword" type="password" autocomplete="new-password"></div>
+        <div class="form-row"><label class="form-label" for="ownerPassword">Owner password</label><input class="form-control" id="ownerPassword" type="password" autocomplete="new-password"></div>
+        <label class="form-label"><input id="permissionPrint" type="checkbox" checked> Allow printing</label>
+        <label class="form-label"><input id="permissionModify" type="checkbox"> Allow document modification</label>
+        <label class="form-label"><input id="permissionCopy" type="checkbox"> Allow copying text/content</label>
+        `,
+        async () => {
+            const userPassword = $("#userPassword").value;
+            const ownerPassword = $("#ownerPassword").value;
+            if(!userPassword || !ownerPassword){
+                alert("Enter both passwords.");
+                return;
+            }
+            if(userPassword === ownerPassword){
+                alert("Use different open and owner passwords.");
+                return;
+            }
+
+            let permissions = 0;
+            if($("#permissionPrint").checked)
+                permissions |= 0x0004;
+            if($("#permissionModify").checked)
+                permissions |= 0x0008;
+            if($("#permissionCopy").checked)
+                permissions |= 0x0010;
+
+            try{
+                status("Encrypting PDF locally...");
+                const source = await createEditedPDF();
+                const protectedBytes = await protectPdf(
+                    source,
+                    userPassword,
+                    ownerPassword,
+                    permissions
+                );
+                downloadBlob(
+                    new Blob(
+                        [protectedBytes],
+                        {type:"application/pdf"}
+                    ),
+                    `${state.fileName.replace(/\.pdf$/i,"")}-protected.pdf`
+                );
+                closeModal();
+                status(
+                    "Password-protected PDF downloaded. Keep both passwords safe; this editor does not store or recover them."
+                );
+            }catch(error){
+                console.error(error);
+                status("PDF password protection failed");
+                alert(`Password protection failed.\n\n${error.message}`);
+            }
+        }
+    );
+};
+
+$("#createFormFieldBtn").onclick = async () => {
+    if(!state.pdf || !state.file)
+        return;
+
+    openModal(
+        "Create PDF Form Field",
+        `
+        <p>Position and dimensions use PDF points, measured from the page's bottom-left corner. The created field remains interactive in the working PDF. Export flattens form fields to preserve their appearance.</p>
+        <div class="form-row"><label class="form-label" for="newFormType">Type</label><select class="form-control" id="newFormType"><option value="text">Text</option><option value="checkbox">Checkbox</option><option value="dropdown">Dropdown</option><option value="radio">Radio group</option></select></div>
+        <div class="form-row"><label class="form-label" for="newFormName">Field name</label><input class="form-control" id="newFormName" required></div>
+        <div class="form-row"><label class="form-label" for="newFormOptions">Options (dropdown/radio; comma-separated)</label><input class="form-control" id="newFormOptions"></div>
+        <div class="form-row"><label class="form-label" for="newFormX">X</label><input class="form-control" id="newFormX" type="number" value="50"></div>
+        <div class="form-row"><label class="form-label" for="newFormY">Y</label><input class="form-control" id="newFormY" type="number" value="50"></div>
+        <div class="form-row"><label class="form-label" for="newFormWidth">Width</label><input class="form-control" id="newFormWidth" type="number" min="1" value="180"></div>
+        <div class="form-row"><label class="form-label" for="newFormHeight">Height</label><input class="form-control" id="newFormHeight" type="number" min="1" value="28"></div>
+        `,
+        async () => {
+            const spec = {
+                kind:$("#newFormType").value,
+                name:$("#newFormName").value.trim(),
+                options:$("#newFormOptions").value
+                    .split(",")
+                    .map(value => value.trim())
+                    .filter(Boolean),
+                pageIndex:state.page - 1,
+                x:Number($("#newFormX").value),
+                y:Number($("#newFormY").value),
+                width:Number($("#newFormWidth").value),
+                height:Number($("#newFormHeight").value)
+            };
+            if(!spec.name){
+                alert("Enter a field name.");
+                return;
+            }
+            if(![spec.x,spec.y,spec.width,spec.height].every(Number.isFinite) ||
+                spec.x < 0 || spec.y < 0 ||
+                spec.width <= 0 || spec.height <= 0){
+                alert("Enter valid non-negative coordinates and positive dimensions.");
+                return;
+            }
+            if(["dropdown","radio"].includes(spec.kind) &&
+                !spec.options.length){
+                alert("Dropdown and radio fields need at least one option.");
+                return;
+            }
+
+            try{
+                const edited = await PDFLib.PDFDocument.load(
+                    await createEditedPDF()
+                );
+                const existingNames = listFormFields(edited)
+                    .map(field => field.name);
+                if(existingNames.includes(spec.name)){
+                    alert("A field with this name already exists.");
+                    return;
+                }
+                createFormField(edited,spec);
+                const bytes = await edited.save();
+                closeModal();
+                recordUndo();
+                await replaceWorkspacePDF(
+                    bytes,
+                    state.fileName,
+                    "Interactive form field added. Export flattens fields to retain their appearance."
+                );
+            }catch(error){
+                console.error(error);
+                status("Unable to create PDF form field");
+                alert(`Form field creation failed.\n\n${error.message}`);
+            }
+        }
+    );
+};
+
+$("#ocrPageBtn").onclick = () => {
+    if(state.pdf)
+        performOcr([state.page - 1]);
+};
+
+$("#ocrAllBtn").onclick = () => {
+    if(state.pdf)
+        performOcr(
+            state.pages.map((_,index) => index)
+        );
+};
+
+$("#exportImageBtn").onclick = async () => {
+    if(!state.pdf)
+        return;
+
+    try{
+        status("Rendering current page as PNG...");
+        const bytes = await createEditedPDF();
+        const rendered = await pdfjsLib.getDocument({
+            data:bytes.slice()
+        }).promise;
+        const page = await rendered.getPage(state.page);
+        const viewport = page.getViewport({scale:2});
+        const imageCanvas = document.createElement("canvas");
+        imageCanvas.width = Math.ceil(viewport.width);
+        imageCanvas.height = Math.ceil(viewport.height);
+        await page.render({
+            canvasContext:imageCanvas.getContext("2d"),
+            viewport
+        }).promise;
+        const blob = await new Promise((resolve,reject) => {
+            imageCanvas.toBlob(
+                result => result
+                    ? resolve(result)
+                    : reject(new Error("The PNG image could not be created.")),
+                "image/png"
+            );
+        });
+        downloadBlob(
+            blob,
+            `${state.fileName.replace(/\.pdf$/i,"")}-page-${state.page}.png`
+        );
+        status("Current page exported as PNG.");
+    }catch(error){
+        console.error(error);
+        status("Page image export failed");
+        alert(`PNG export failed.\n\n${error.message}`);
+    }
+};
+
+$("#exportTextBtn").onclick = async () => {
+    if(!state.pdf)
+        return;
+
+    try{
+        status("Extracting text from PDF...");
+        const bytes = await createEditedPDF();
+        const document = await pdfjsLib.getDocument({
+            data:bytes.slice()
+        }).promise;
+        const pages = [];
+        for(let pageNumber=1; pageNumber<=document.numPages; pageNumber++){
+            const page = await document.getPage(pageNumber);
+            const content = await page.getTextContent();
+            pages.push(
+                `--- Page ${pageNumber} ---\n` +
+                content.items
+                    .map(item => item.str || "")
+                    .join(" ")
+            );
+        }
+        downloadBlob(
+            new Blob(
+                [pages.join("\n\n")],
+                {type:"text/plain;charset=utf-8"}
+            ),
+            `${state.fileName.replace(/\.pdf$/i,"")}.txt`
+        );
+        status("PDF text exported.");
+    }catch(error){
+        console.error(error);
+        status("Text export failed");
+        alert(`Text export failed.\n\n${error.message}`);
+    }
+};
+
+$("#imagesToPdfBtn").onclick = () =>
+$("#imagesToPdfInput").click();
+
+$("#imagesToPdfInput").addEventListener("change",async event => {
+    const files = [...event.target.files];
+    event.target.value = "";
+    if(!files.length)
+        return;
+
+    try{
+        status("Converting images to PDF...");
+        const output = await PDFLib.PDFDocument.create();
+        const pageSize = [595.28,841.89];
+        const margin = 24;
+        for(const file of files){
+            const bitmap = await createImageBitmap(file);
+            let image;
+            try{
+                if(file.type === "image/png"){
+                    image = await output.embedPng(
+                        await file.arrayBuffer()
+                    );
+                }else if(
+                    file.type === "image/jpeg" ||
+                    file.type === "image/jpg"
+                ){
+                    image = await output.embedJpg(
+                        await file.arrayBuffer()
+                    );
+                }else{
+                    const canvas = document.createElement("canvas");
+                    canvas.width = bitmap.width;
+                    canvas.height = bitmap.height;
+                    canvas.getContext("2d").drawImage(bitmap,0,0);
+                    const blob = await new Promise((resolve,reject) => {
+                        canvas.toBlob(result =>
+                            result
+                                ? resolve(result)
+                                : reject(new Error("Image conversion to PNG failed.")),
+                            "image/png"
+                        );
+                    });
+                    image = await output.embedPng(
+                        await blob.arrayBuffer()
+                    );
+                    canvas.width = 1;
+                    canvas.height = 1;
+                }
+            }finally{
+                bitmap.close();
+            }
+
+            const page = output.addPage(pageSize);
+            const scale = Math.min(
+                (pageSize[0] - margin * 2) / image.width,
+                (pageSize[1] - margin * 2) / image.height
+            );
+            const width = image.width * scale;
+            const height = image.height * scale;
+            page.drawImage(image,{
+                x:(pageSize[0] - width) / 2,
+                y:(pageSize[1] - height) / 2,
+                width,
+                height
+            });
+        }
+
+        const bytes = await output.save();
+        downloadBlob(
+            new Blob([bytes],{type:"application/pdf"}),
+            "images.pdf"
+        );
+        status(
+            `Converted ${files.length} image${files.length === 1 ? "" : "s"} into an A4 PDF.`
+        );
+    }catch(error){
+        console.error(error);
+        status("Image-to-PDF conversion failed");
+        alert(`Image-to-PDF conversion failed.\n\n${error.message}`);
+    }
+});
 
 /* =====================================================
    EXPORT
@@ -4166,8 +5628,14 @@ async () => {
 
         state.dirty = false;
 
+        const hasRedactions = Object.values(state.annotations)
+            .some(items =>
+                items.some(item => item.type === "redact")
+            );
         status(
-            "PDF exported successfully"
+            hasRedactions
+                ? "Rasterized redacted PDF exported. All pages are images; text and links are removed."
+                : "PDF exported successfully"
         );
 
     }catch(error){
@@ -4202,9 +5670,9 @@ function pdfColor(value,fallback="#9f4738"){
     );
 }
 
-async function createEditedPDF(){
+async function createEditedPDF(sourceBytes=null){
 
-    const original =
+    const original = sourceBytes ||
     await state.file.arrayBuffer();
 
     const source =
@@ -4212,8 +5680,73 @@ async function createEditedPDF(){
         original
     );
 
-    const output =
+    const sourceForm = source.getForm();
+    if(sourceForm.getFields().length){
+        sourceForm.updateFieldAppearances();
+        sourceForm.flatten();
+    }
+
+    let output =
     await PDFLib.PDFDocument.create();
+
+    const title = source.getTitle();
+    const author = source.getAuthor();
+    const subject = source.getSubject();
+    const keywords = source.getKeywords();
+    const creator = source.getCreator();
+    const producer = source.getProducer();
+    const creationDate = source.getCreationDate();
+    const modificationDate = source.getModificationDate();
+    if(title) output.setTitle(title);
+    if(author) output.setAuthor(author);
+    if(subject) output.setSubject(subject);
+    if(keywords) output.setKeywords(
+        keywords.split(",").map(value => value.trim()).filter(Boolean)
+    );
+    if(creator) output.setCreator(creator);
+    if(producer) output.setProducer(producer);
+    if(creationDate) output.setCreationDate(creationDate);
+    if(modificationDate) output.setModificationDate(modificationDate);
+
+    const overlayFontCache = new Map();
+    const overlayFont = async item => {
+        const family = ["Helvetica","TimesRoman","Courier"]
+            .includes(item.fontFamily)
+            ? item.fontFamily
+            : "Helvetica";
+        const key = `${family}:${Boolean(item.bold)}:${Boolean(item.italic)}`;
+        if(overlayFontCache.has(key))
+            return overlayFontCache.get(key);
+
+        const fontNames = {
+            Helvetica:[
+                PDFLib.StandardFonts.Helvetica,
+                PDFLib.StandardFonts.HelveticaBold,
+                PDFLib.StandardFonts.HelveticaOblique,
+                PDFLib.StandardFonts.HelveticaBoldOblique
+            ],
+            TimesRoman:[
+                PDFLib.StandardFonts.TimesRoman,
+                PDFLib.StandardFonts.TimesRomanBold,
+                PDFLib.StandardFonts.TimesRomanItalic,
+                PDFLib.StandardFonts.TimesRomanBoldItalic
+            ],
+            Courier:[
+                PDFLib.StandardFonts.Courier,
+                PDFLib.StandardFonts.CourierBold,
+                PDFLib.StandardFonts.CourierOblique,
+                PDFLib.StandardFonts.CourierBoldOblique
+            ]
+        };
+        const variant = item.bold
+            ? (item.italic ? 3 : 1)
+            : (item.italic ? 2 : 0);
+        const font = await output.embedFont(
+            fontNames[family][variant]
+        );
+        overlayFontCache.set(key,font);
+        return font;
+    };
 
     for(const entry of state.pages){
 
@@ -4249,6 +5782,27 @@ async function createEditedPDF(){
 
     }
 
+    const textEdits = Object.entries(state.annotations)
+        .flatMap(([pageNumber,list]) =>
+            list
+                .filter(item => item.type === "textEdit")
+                .map(item => ({
+                    pageIndex:Number(pageNumber) - 1,
+                    originalText:item.originalText,
+                    text:item.text,
+                    x:item.x,
+                    y:item.y
+                }))
+        );
+    if(textEdits.length){
+        status("Applying edits to original PDF text objects...");
+        const editedBytes = await replaceTextObjects(
+            await output.save(),
+            textEdits
+        );
+        output = await PDFLib.PDFDocument.load(editedBytes);
+    }
+
     /*
      * Text annotations are flattened
      * onto their corresponding pages.
@@ -4274,71 +5828,42 @@ async function createEditedPDF(){
         for(const item of list){
 
             if(item.type === "text"){
+                const font = await overlayFont(item);
+                const size = Number(item.size) || 16;
+                const textWidth = font.widthOfTextAtSize(
+                    item.text,
+                    size
+                );
+                const boxWidth = Number(item.width) || textWidth;
+                let x = Number(item.x) || 0;
+                if(item.align === "center")
+                    x += (boxWidth - textWidth) / 2;
+                else if(item.align === "right")
+                    x += boxWidth - textWidth;
+                const y =
+                page.getHeight() -
+                (Number(item.y) || 0) -
+                size;
 
                 page.drawText(
                     item.text,
                     {
-                        x:item.x,
-                        y:
-                        page.getHeight() -
-                        item.y -
-                        item.size,
-
-                        size:item.size,
-
-                        color:
-                        PDFLib.rgb(
-                            .12,
-                            .12,
-                            .12
-                        )
+                        x,
+                        y,
+                        size,
+                        font,
+                        color:pdfColor(item.color,"#1f1f1f"),
+                        opacity:item.opacity ?? 1
                     }
                 );
-
-            }
-
-            if(item.type === "textEdit"){
-
-                const width =
-                Math.max(item.width,item.size * .5);
-
-                page.drawRectangle({
-                    x:item.x,
-                    y:item.y - item.size * .3,
-                    width,
-                    height:item.size * 1.25,
-                    color:PDFLib.rgb(1,1,1)
-                });
-
-                if(item.text){
-
-                    const font =
-                    await output.embedFont(
-                        PDFLib.StandardFonts.Helvetica
-                    );
-
-                    const textWidth =
-                    font.widthOfTextAtSize(
-                        item.text,
-                        item.size
-                    );
-
-                    const exportSize =
-                    textWidth > width
-                        ? item.size * width / textWidth
-                        : item.size;
-
-                    page.drawText(
-                        item.text,
-                        {
-                            x:item.x,
-                            y:item.y - item.size * .08,
-                            size:exportSize,
-                            font,
-                            color:PDFLib.rgb(.12,.12,.12)
-                        }
-                    );
-
+                if(item.underline){
+                    page.drawLine({
+                        start:{x,y:y - 2},
+                        end:{x:x + textWidth,y:y - 2},
+                        thickness:Math.max(1,size / 16),
+                        color:pdfColor(item.color,"#1f1f1f"),
+                        opacity:item.opacity ?? 1
+                    });
                 }
 
             }
@@ -4359,11 +5884,20 @@ async function createEditedPDF(){
                     height:item.height,
 
                     color:pdfColor(item.color,"#ffe13b"),
-
-                    opacity:.35
+                    opacity:item.opacity ?? .35
 
                 });
 
+            }
+
+            if(item.type === "redact"){
+                page.drawRectangle({
+                    x:item.x,
+                    y:page.getHeight() - item.y - item.height,
+                    width:item.width,
+                    height:item.height,
+                    color:PDFLib.rgb(0,0,0)
+                });
             }
 
             if(item.type === "rectangle"){
@@ -4377,7 +5911,9 @@ async function createEditedPDF(){
                     width:item.width,
                     height:item.height,
                     borderColor:pdfColor(item.color),
-                    borderWidth:Number(item.strokeWidth) || 3
+                    borderWidth:Number(item.strokeWidth) || 3,
+                    rotate:PDFLib.degrees(item.rotation || 0),
+                    opacity:item.opacity ?? 1
                 };
                 if(item.fillColor)
                     options.color = pdfColor(item.fillColor);
@@ -4392,7 +5928,9 @@ async function createEditedPDF(){
                     xScale:item.width / 2,
                     yScale:item.height / 2,
                     borderColor:pdfColor(item.color),
-                    borderWidth:Number(item.strokeWidth) || 3
+                    borderWidth:Number(item.strokeWidth) || 3,
+                    rotate:PDFLib.degrees(item.rotation || 0),
+                    opacity:item.opacity ?? 1
                 };
                 if(item.fillColor)
                     options.color = pdfColor(item.fillColor);
@@ -4418,6 +5956,7 @@ async function createEditedPDF(){
                         },
                         thickness,
                         color,
+                        opacity:item.opacity ?? 1,
                         lineCap:PDFLib.LineCapStyle.Round
                     });
                 }
@@ -4426,7 +5965,8 @@ async function createEditedPDF(){
                         x:item.x + points[0][0],
                         y:page.getHeight() - item.y - points[0][1],
                         size:thickness / 2,
-                        color
+                        color,
+                        opacity:item.opacity ?? 1
                     });
                 }
                 if(item.arrow && points.length > 1){
@@ -4447,6 +5987,7 @@ async function createEditedPDF(){
                             },
                             thickness,
                             color,
+                            opacity:item.opacity ?? 1,
                             lineCap:PDFLib.LineCapStyle.Round
                         });
                     }
@@ -4467,7 +6008,7 @@ async function createEditedPDF(){
                         item.y -
                         16,
 
-                        size:16,
+                        opacity:item.opacity ?? 1,
 
                         color:
                         PDFLib.rgb(
@@ -4504,7 +6045,8 @@ async function createEditedPDF(){
                     height:noteHeight,
                     color:PDFLib.rgb(1,.98,.73),
                     borderColor:PDFLib.rgb(.84,.78,.47),
-                    borderWidth:.75
+                    borderWidth:.75,
+                    opacity:item.opacity ?? 1
                 });
 
                 page.drawText(item.text,{
@@ -4513,6 +6055,7 @@ async function createEditedPDF(){
                     size:10,
                     maxWidth:noteWidth - 12,
                     lineHeight:10,
+                    opacity:item.opacity ?? 1,
                     color:PDFLib.rgb(.2,.19,.12)
                 });
 
@@ -4582,7 +6125,9 @@ async function createEditedPDF(){
                     item.y -
                     item.height,
                     width:item.width,
-                    height:item.height
+                    height:item.height,
+                    opacity:item.opacity ?? 1,
+                    rotate:PDFLib.degrees(item.rotation || 0)
                 });
 
             }
@@ -4591,8 +6136,64 @@ async function createEditedPDF(){
 
     }
 
-    return output.save();
+    const bytes = await output.save();
+    const hasRedactions = Object.values(state.annotations)
+        .some(items =>
+            items.some(item => item.type === "redact")
+        );
+    return hasRedactions
+        ? rasterizeRedactedPDF(bytes)
+        : bytes;
 
+}
+
+async function rasterizeRedactedPDF(bytes){
+    const source = await pdfjsLib.getDocument({
+        data:bytes.slice()
+    }).promise;
+    const flattened = await PDFLib.PDFDocument.create();
+    const scale = 3;
+
+    for(let pageNumber=1; pageNumber<=source.numPages; pageNumber++){
+        const page = await source.getPage(pageNumber);
+        const viewport = page.getViewport({scale});
+        const raster = document.createElement("canvas");
+        raster.width = Math.ceil(viewport.width);
+        raster.height = Math.ceil(viewport.height);
+        const context = raster.getContext("2d");
+        context.fillStyle = "#fff";
+        context.fillRect(0,0,raster.width,raster.height);
+        await page.render({
+            canvasContext:context,
+            viewport
+        }).promise;
+
+        const blob = await new Promise((resolve,reject) => {
+            raster.toBlob(result =>
+                result
+                    ? resolve(result)
+                    : reject(new Error("Unable to rasterize a redacted page.")),
+                "image/png"
+            );
+        });
+        const image = await flattened.embedPng(
+            await blob.arrayBuffer()
+        );
+        const outputPage = flattened.addPage([
+            viewport.width / scale,
+            viewport.height / scale
+        ]);
+        outputPage.drawImage(image,{
+            x:0,
+            y:0,
+            width:viewport.width / scale,
+            height:viewport.height / scale
+        });
+        raster.width = 1;
+        raster.height = 1;
+    }
+
+    return flattened.save();
 }
 
 
@@ -4814,37 +6415,65 @@ async event => {
     const file =
     event.target.files[0];
     event.target.value = "";
+    const replaceRequested = replaceImageRequested;
+    replaceImageRequested = false;
 
     if(!file || !state.pdf)
         return;
 
-    const data =
-    await file.arrayBuffer();
+    try{
+        const data = await file.arrayBuffer();
+        const image = await createImageBitmap(file);
+        const mime = file.type || "image/png";
+        const item = replaceRequested
+            ? (state.annotations[state.page] || [])
+                .find(mark =>
+                    mark.id === selectedAnnotationId &&
+                    mark.type === "image"
+                )
+            : null;
 
-    const image =
-    await createImageBitmap(
-        file
-    );
+        if(replaceRequested && !item){
+            image.close();
+            status("Select an inserted image before replacing it.");
+            return;
+        }
 
-    const width = Math.min(250,image.width);
+        recordUndo();
+        if(item){
+            if(item.previewUrl)
+                URL.revokeObjectURL(item.previewUrl);
+            item.data = data;
+            item.mime = mime;
+            item.height =
+                item.width * image.height / image.width;
+            item.previewUrl = null;
+        }else{
+            const width = Math.min(250,image.width);
+            const added = {
+                type:"image",
+                x:60,
+                y:60,
+                width,
+                height:width * image.height / image.width,
+                opacity:1,
+                rotation:0,
+                data,
+                mime,
+                id:nextAnnotationId++
+            };
+            annotations().push(added);
+            selectedAnnotationId = added.id;
+        }
 
-    const item = {
-        type:"image",
-        x:60,
-        y:60,
-        width,
-        height:width * image.height / image.width,
-        data,
-        mime:file.type || "image/png"
-    };
-
-    image.close();
-    recordUndo();
-    item.id = nextAnnotationId++;
-    annotations().push(item);
-    selectedAnnotationId = item.id;
-    state.dirty = true;
-    renderAnnotations();
+        image.close();
+        state.dirty = true;
+        renderAnnotations();
+    }catch(error){
+        console.error(error);
+        status("Unable to add or replace image");
+        alert(`Image operation failed.\n\n${error.message}`);
+    }
 
 });
 
@@ -5151,6 +6780,18 @@ event => {
         return;
     }
 
+    if(modifier && key === "c" && selectedAnnotationId !== null){
+        if(copySelectedMark())
+            event.preventDefault();
+        return;
+    }
+
+    if(modifier && key === "v" && annotationClipboard){
+        if(pasteMark())
+            event.preventDefault();
+        return;
+    }
+
     if(modifier && key === "d" && selectedAnnotationId !== null){
         event.preventDefault();
         duplicateSelectedMark();
@@ -5218,6 +6859,21 @@ event => {
 status(
 "Ready — open a PDF to begin"
 );
+
+window.AZpaceAuth.ready.then(async session => {
+    if(!session)
+        return;
+    try{
+        const pendingFile =
+            await window.AZpaceFileHandoff.consumePendingFile();
+        if(pendingFile)
+            await loadPDF(pendingFile);
+    }catch(error){
+        console.error("Could not open the workspace file:",error);
+        status(error.message);
+        alert(`Could not open file.\n\n${error.message}`);
+    }
+});
 
 </script>
 

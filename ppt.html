@@ -13,6 +13,7 @@
 <script src="azpace-entitlements.js"></script>
 <script src="azpace-auth-ui.js"></script>
 <script src="azpace-native-files.js"></script>
+<script src="azpace-file-handoff.js"></script>
 
 <style>
 :root{
@@ -9816,20 +9817,26 @@ document.getElementById(
     "openInput"
 ).addEventListener(
     "change",
-    async e=>{
+    event=>{
+        const file=event.target.files?.[0];
+        event.target.value="";
+        openPresentationFile(file);
+    }
+);
 
-        const file=e.target.files?.[0];
+async function openPresentationFile(file){
+    if(!file) return;
 
-        if(!file) return;
-
-        try{
-
-            let imported;
-            if(/\.pptx$/i.test(file.name)){
-                imported=await importPPTX(file);
-            }else if(/\.azps$/i.test(file.name)){
+    try{
+        let imported;
+        if(/\.pptx$/i.test(file.name)){
+            imported=await importPPTX(file);
+        }else if(/\.azps$/i.test(file.name)){
+            const serialized=await file.text();
+            const payload=JSON.parse(serialized);
+            if(payload?.format==="AZPACE"){
                 const envelope=AZpaceFiles.parse(
-                    await file.text(),
+                    serialized,
                     "presentation"
                 );
                 if(
@@ -9842,65 +9849,55 @@ document.getElementById(
                 imported={...envelope.data.state};
                 imported.createdAt=envelope.metadata.createdAt;
                 imported.modifiedAt=envelope.metadata.modifiedAt;
-            }else{
-                imported=JSON.parse(await file.text());
-            }
-
-            if(
-                !imported ||
-                !Array.isArray(
-                    imported.slides
-                ) ||
-                !imported.slides.length
+            }else if(
+                payload?.format==="azps"&&
+                payload.version===1&&
+                payload.presentation&&
+                typeof payload.presentation==="object"&&
+                !Array.isArray(payload.presentation)
             ){
-
-                throw new Error(
-                    "Invalid presentation file"
-                );
+                imported=payload.presentation;
+            }else{
+                throw new Error("Unsupported A-Zpace presentation file format.");
             }
-
-            const {
-                omittedElements=0,
-                ...presentation
-            }=imported;
-
-            pushHistory();
-
-            state=Object.assign(
-                state,
-                presentation
-            );
-
-            selectedIds=[];
-
-            document.getElementById(
-                "presentationName"
-            ).value=state.name;
-
-            renderAll();
-            save();
-
-            toast("Presentation opened");
-
-            if(omittedElements){
-                toast(
-                    `Opened with ${omittedElements} unsupported item(s) omitted`
-                );
-            }
-
-        }catch(err){
-
-            console.error("Could not open presentation",err);
-
-            toast(
-                "Could not open presentation: "+
-                (err?.message||"Invalid file")
-            );
+        }else{
+            imported=JSON.parse(await file.text());
         }
 
-        e.target.value="";
+        if(
+            !imported ||
+            !Array.isArray(imported.slides) ||
+            !imported.slides.length
+        ){
+            throw new Error("Invalid presentation file");
+        }
+
+        const {
+            omittedElements=0,
+            ...presentation
+        }=imported;
+
+        pushHistory();
+        state=Object.assign(state,presentation);
+        selectedIds=[];
+        document.getElementById("presentationName").value=state.name;
+        renderAll();
+        save();
+        toast("Presentation opened");
+
+        if(omittedElements){
+            toast(
+                `Opened with ${omittedElements} unsupported item(s) omitted`
+            );
+        }
+    }catch(error){
+        console.error("Could not open presentation",error);
+        toast(
+            "Could not open presentation: "+
+            (error?.message||"Invalid file")
+        );
     }
-);
+}
 
 
 /* =========================================================
@@ -11192,6 +11189,15 @@ window.AZpaceAuth.ready.then(session => {
     if (!session) return;
     load();
     renderAll();
+    window.AZpaceFileHandoff.consumePendingFile()
+        .then(file => {
+            if(file)
+                openPresentationFile(file);
+        })
+        .catch(error => {
+            console.error("Could not open the workspace file:",error);
+            toast(error.message);
+        });
 });
 
 </script>
